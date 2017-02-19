@@ -18,7 +18,34 @@
 */
 #include <HeatPump.h>
 
+/* DEBUG */
+#define DEBUG 1
+#if DEBUG
+void HeatPump::log (const char* msg){
+	if (debugCb){
+		debugCb (msg);
+	}
+}
+#endif
+/* END DEBUG */
+
 HeatPump::HeatPump() {
+}
+
+void HeatPump::setDebugCb(DEBUG_CB){
+	this->debugCb = debugCb;
+	ml.setDebugCb(debugCb);
+}
+
+void HeatPump::requestInfo(mitsiLib::info_t kind){
+    byte buf[32] = {0};
+    int len = ml.getTxInfoPacket (buf, kind);
+    for(int i = 0; i < len; i++) {
+	  #if (DEBUG > 1)
+	  log (String(String("Tx: 0x") + String(buf[i],HEX)).c_str());
+	  #endif		
+      _HardSerial->write((uint8_t)buf[i]);
+    }
 }
 
 void HeatPump::connect(HardwareSerial *serial) {
@@ -27,10 +54,13 @@ void HeatPump::connect(HardwareSerial *serial) {
   delay(BEGIN_DELAY_TIME);
   
   byte buf[16] = {0};
-  int len = ml.encodeConnectPacket (buf);
+  int len = ml.getTxConnectPacket (buf);
 
   for(int cnt = 0; cnt < CONNECT_TX_COUNT; cnt++) {
     for(int i = 0; i < len; i++) {
+	  #if (DEBUG > 1)
+	  log (String(String("Tx: 0x") + String(buf[i],HEX)).c_str());
+	  #endif
       _HardSerial->write((uint8_t)buf[i]);
     }
     delay(CONN_DELAY_TIME);
@@ -39,36 +69,21 @@ void HeatPump::connect(HardwareSerial *serial) {
 
 void HeatPump::monitor() {
   while (_HardSerial->available() > 0){
-    ml.feed(_HardSerial->read());
-	if (ml.isDataAvailable()) {
-		mitsiLib::msgData_t data = ml.getData();
-		switch (data.kind){
-			case mitsiLib::msgKind_t::settings :
-				packetReceivedCallback(0,0);
-				break;
-			case mitsiLib::msgKind_t::roomTemp:
-				roomTempChangedCallback(data.data.roomTemp.roomTemp);
-				break;
-			case mitsiLib::msgKind_t::status:
-				settingsChangedCallback();
-				break;
+    pb.addByte(_HardSerial->read());
+	if (pb.complete() && pb.valid()) {
+		mitsiLib::msg_t msg = pb.getData();
+		if (msg.msgKindValid){
+			switch (msg.kind){
+				case mitsiLib::msgKind_t::rxCurrentSettings:
+					rxSettingsCb(&msg.data.rxCurrentSettingsData);
+					break;
+			}
 		}
+		pb.reset();
 	}
   }
 }
 
-void HeatPump::setSettingsChangedCallback(SETTINGS_CHANGED_CALLBACK_SIGNATURE) {
-  this->settingsChangedCallback = settingsChangedCallback;
+void HeatPump::setRxSettingsCb(RX_SETTINGS_CB){
+  this->rxSettingsCb = rxSettingsCb;
 }
-
-void HeatPump::setPacketReceivedCallback(PACKET_RECEIVED_CALLBACK_SIGNATURE) {
-  this->packetReceivedCallback = packetReceivedCallback;
-}
-
-void HeatPump::setRoomTempChangedCallback(ROOM_TEMP_CHANGED_CALLBACK_SIGNATURE) {
-  this->roomTempChangedCallback = roomTempChangedCallback;
-
-}
-
-
-

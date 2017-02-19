@@ -1,6 +1,6 @@
 /*
-  HeatPump.h - Mitsubishi Heat Pump control library for Arduino
-  Copyright (c) 2017 Al Betschart.  All right reserved.
+  mitsiLib.h - Mitsubishi Heat Pump protocol library
+  Copyright (c) 2017 Jarrod Lamb.  All right reserved.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,6 @@
 #include <math.h>
 #include <HardwareSerial.h>
 #if defined(ARDUINO) && ARDUINO >= 100
-#include "Arduino.h"
 #else
 #include "WProgram.h"
 #endif
@@ -35,34 +34,51 @@
  */
 #ifdef ESP8266
 #include <functional>
-#define SETTINGS_CHANGED_CALLBACK_SIGNATURE std::function<void()> settingsChangedCallback
-#define PACKET_RECEIVED_CALLBACK_SIGNATURE std::function<void(byte* data, unsigned int length)> packetReceivedCallback
-#define ROOM_TEMP_CHANGED_CALLBACK_SIGNATURE std::function<void(unsigned int newTemp)> roomTempChangedCallback
+#define RX_SETTINGS_CB std::function<void(mitsiLib::rxSettings_t* msg)> rxSettingsCb
 #else
-#define SETTINGS_CHANGED_CALLBACK_SIGNATURE void (*settingsChangedCallback)();
-#define PACKET_RECEIVED_CALLBACK_SIGNATURE void (*packetReceivedCallback)(byte* data, unsigned int length);
-#define ROOM_TEMP_CHANGED_CALLBACK_SIGNATURE void (*roomTempChangedCallback)(unsigned int newTemp);
+#define RX_SETTINGS_CB void (*rxSettingsCb)();
+
+
 #endif
+
+
+#ifdef ESP8266
+#include <functional>
+#define DEBUG_CB std::function<void(const char* msg)> debugCb
+#else
+#define DEBUG_CB void (*debugCb)();
+#endif
+
+#define DEBUG 1
 
 class HeatPump
 {
   public:
     // Constructor
     HeatPump();
+	
+	#if DEBUG
+	void setDebugCb(DEBUG_CB);
+	#endif
 
     // Library callback methods
-    void setSettingsChangedCallback(SETTINGS_CHANGED_CALLBACK_SIGNATURE);
-    void setPacketReceivedCallback(PACKET_RECEIVED_CALLBACK_SIGNATURE);
-    void setRoomTempChangedCallback(ROOM_TEMP_CHANGED_CALLBACK_SIGNATURE);
-
+    void setRxSettingsCb(RX_SETTINGS_CB);
+   
     // Control methods
     void connect(HardwareSerial *serial);
+	void requestInfo(mitsiLib::info_t kind);
     void monitor();
 
 
   private:
-	mitsiLib ml;
-
+	#if DEBUG
+	void log (const char* msg);
+    DEBUG_CB;
+	#endif
+	
+    mitsiLib ml = mitsiLib();
+	mitsiLib::packetBuilder pb = mitsiLib::packetBuilder(&ml);
+	
     // Serial constants
     const static int PACKET_DELAY_TIME_MS = 1000;
     const static int BEGIN_DELAY_TIME = 2000;
@@ -72,9 +88,7 @@ class HeatPump
     // Serial
     HardwareSerial * _HardSerial;
 
-    // callbacks
-    SETTINGS_CHANGED_CALLBACK_SIGNATURE;
-    PACKET_RECEIVED_CALLBACK_SIGNATURE;
-    ROOM_TEMP_CHANGED_CALLBACK_SIGNATURE;
+    // Callbacks
+	RX_SETTINGS_CB;
 };
 #endif

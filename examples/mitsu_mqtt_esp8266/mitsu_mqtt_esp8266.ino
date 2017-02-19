@@ -7,90 +7,95 @@
 // Include user configuration settings
 #include "config.h"
 
-// pinouts
 const int redLedPin  = 0; // Onboard LED = digital pin 0 (red LED on adafruit ESP8266 huzzah)
 const int blueLedPin = 2; // Onboard LED = digital pin 0 (blue LED on adafruit ESP8266 huzzah)
 
-// wifi, mqtt and heatpump client instances
+// Variables
 WiFiClient espClient;
-PubSubClient mqtt_client(espClient);
-HeatPump hp;
+PubSubClient mqttClient(espClient);
+HeatPump hp = HeatPump();
+long nextInfoTime = 0;
+mitsiLib::info_t nextInfo = mitsiLib::settings;
 
-void setup() {
+// Methods
+void mqttConnect() {
+  char strWill[64] = {0};
+  strcat (strWill, mqttClientId);
+  strcat (strWill, ": Offline");
   
-  WiFi.begin(ssid, password);
+  while (!mqttClient.connected()) {
+    if (mqttClient.connect(mqttClientId, mqttUser, mqttPass, mqttStateTopic, 0, true, strWill)) {        
+      mqttClient.subscribe(mqttSetTopic);
+      mqttClient.subscribe(mqttSetDebugTopic);
 
-  while (WiFi.status() != WL_CONNECTED) {
-    // wait 500ms, flashing the blue LED to indicate WiFi connecting...
-    digitalWrite(blueLedPin, LOW);
-    delay(250);
-    digitalWrite(blueLedPin, HIGH);
-    delay(250);
-  }
-
-  // startup mqtt connection
-  mqtt_client.setServer(mqtt_server, 1883);
-  mqtt_client.setCallback(mqttCallback);
-
-  // connect to the heatpump
-  hp.connect(&Serial);
-
-  hp.setSettingsChangedCallback(hpSettingsChanged);
-  hp.setPacketReceivedCallback(hpPacketReceived);
-  hp.setRoomTempChangedCallback(hpRoomTempChanged);
-}
-
-void hpSettingsChanged() {
-    mqtt_client.publish(hp_debug_topic, "settings changed");
-}
-
-void hpRoomTempChanged(int newTemp) {
-    mqtt_client.publish(hp_debug_topic, "temp changed");
-}
-
-void hpPacketReceived(byte* packet, unsigned int length) {
-    mqtt_client.publish(hp_debug_topic, "packet rx");
-  
-}
-
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
-
-}
-
-void reconnect() {
-  // Loop until we're reconnected
-  while (!mqtt_client.connected()) {
-    // Attempt to connect
-    if (mqtt_client.connect(client_id, mqtt_username, mqtt_password)) {
-      mqtt_client.subscribe(hp_set_topic);
-      mqtt_client.subscribe(hp_debug_set_topic);
+      char strStatus[64] = {0};
+      strcat (strStatus, mqttClientId);
+      strcat (strStatus, ": Online");
+      mqttClient.publish(mqttStateTopic, strStatus, true);
+        
+      digitalWrite(redLedPin, LOW);
     } else {
-      // Wait 5 seconds before retrying
-      delay(5000);
+      delay(4000);
     }
   }
 }
 
-int lastSend = 0;
-
-void loop() {
-
-  if (!mqtt_client.connected()) {
-    reconnect();
+void wifiConnect(){
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    digitalWrite(blueLedPin, LOW);
   }
-  
-  if (millis() > lastSend + 1000){
-    char blah[64] = {0};
-    strcat (blah, client_id);
-    strcat (blah, " online");
-    mqtt_client.publish(hp_debug_topic, blah, false);
-    lastSend = millis();
+}
+
+void debug(const char* msg){
+    mqttClient.publish("debug", msg);  
+}
+
+void rxSettings(mitsiLib::rxSettings_t* msg) {
+  String info;
+  switch (msg->kind){
+    case mitsiLib::settings:
+      info = String("Rx Settings: ");
+      mqttClient.publish(mqttDebugTopic, info.c_str());
+      break;
+    case mitsiLib::roomTemp:
+      info = String("Rx Room Temp: " + String(msg->data.roomTemp.roomTemp));
+      mqttClient.publish(mqttDebugTopic, info.c_str());
+      break;
   }
+}
 
-  hp.monitor();
+void mqttCallback(char* topic, byte* payload, unsigned int length){};
 
-  mqtt_client.loop();
+/* Setup */
+void setup() {
+  mqttClient.setServer(mqttServer, 1883);
+  mqttClient.setCallback(mqttCallback);
+
+  hp.setDebugCb(debug);
+  hp.setRxSettingsCb(rxSettings);
+  hp.connect(&Serial);
 }
 
 
+/* Main Loop */
+void loop() {
+  if (!mqttClient.connected()) {
+	digitalWrite(redLedPin, HIGH);
+    mqttConnect();
+  }
+  if (WiFi.status() != WL_CONNECTED){
+	digitalWrite(blueLedPin, HIGH);
+    wifiConnect();
+  }
 
+  if (millis() >= nextInfoTime){
+	  hp.requestInfo(nextInfo);
+	  nextInfoTime = millis() + 5000;
+	  nextInfo = nextInfo==mitsiLib::settings?mitsiLib::roomTemp:mitsiLib::settings;
+  }
+  
+  hp.monitor();
+  
+  mqttClient.loop();
+}

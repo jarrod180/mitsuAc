@@ -19,11 +19,23 @@
 */
 #include "Arduino.h"
 
+#ifdef ESP8266
+#include <functional>
+#define DEBUG_CB std::function<void(const char* msg)> debugCb
+#else
+#define DEBUG_CB void (*debugCb)();
+#endif
+
+#define DEBUG 1
+
 class mitsiLib
 {
 public:
+	#if DEBUG
+    void setDebugCb(DEBUG_CB);
+	#endif
 	
-    enum power_t : byte
+    enum class power_t : byte
     {
         powerOff = 0x00,
         powerOn  = 0x01
@@ -66,7 +78,7 @@ public:
         wideVaneSwing        = 0x0c
     };
 
-    struct mitsiSettings_t {
+    struct settings_t {
        power_t power;
        bool powerValid;
        mode_t mode;
@@ -81,60 +93,114 @@ public:
 	   bool tempDegCValid;
     };
 
-    struct mitsiRoomTemp_t {
+    struct roomTemp_t {
        int roomTemp;
        bool roomTempValid;
-    };
+    };	
+	
+	enum class dataKind_t {
+		settingsRequest = 0x01,
+		currentSettings = 0x02,
+		currentRoomTemp = 0x03
+	};
 
+	enum info_t {
+		settings = 0x02,
+		roomTemp = 0x03
+	};
+
+	struct rxSettings_t
+    {
+        info_t kind;
+        union
+        {
+          settings_t settings;
+          roomTemp_t roomTemp;
+        } data;
+    };	
+	
+	struct status_t 
+	{
+	};
+	
+	struct connect_t 
+	{
+	};
+	
     enum class msgKind_t {
-      settings, roomTemp, status
+       txConnect         = 0x5a,
+	   txSettings        = 0x41,
+       txInfoRequest     = 0x42,
+	   rxCurrentSettings = 0x62,
+	   rxStatusOk        = 0x61,
+	   rxStatusNok       = 0x7a // confirm this is correct!
     };
 
-    struct msgData_t
+    struct msg_t
     {
         msgKind_t kind;
         bool msgKindValid;
         union
         {
-          mitsiSettings_t settings;
-          mitsiRoomTemp_t roomTemp;
+          rxSettings_t rxCurrentSettingsData;
+		  settings_t txSettingsData;
+		  info_t txInfoRequestData;
+		  connect_t txConnectData;
+		  status_t rxStatusOkData;
+		  status_t rxStatusNokData;
         } data;
     };
-    
+	
+	    
 	// Constructor
     mitsiLib();
-
-	// Reset the protocol library
-    void reset();
 	
-	// Feed a byte to the protocol
-    void feed (byte b);
+	/* 
+	packetBuilder Class -
+	Add one byte at a time and discover when a valid
+	packet is detected and then get the data.
+	*/
+	class packetBuilder
+	{
+		friend class mitsiLib;
+		
+		public:
+			packetBuilder(mitsiLib* parent);
+		    int addByte(byte b);
+			bool complete();
+			bool valid();
+			mitsiLib::msg_t getData();
+			void reset();
+			
+		private:
+			mitsiLib* parent;
+			static const int MAX_SIZE=32;
+			byte buffer[MAX_SIZE];
+			int cursor;
+	};	
 	
-	// Check if a message has been decoded yet
-    bool isDataAvailable();
-	
-	// Get the decoded data
-    msgData_t getData();
-	
-	// Encode a TX message to the supplied buffer
-    int encodeControlPacket (mitsiSettings_t settings, byte* buffer);
-	int encodeConnectPacket (byte* buffer);
+	// Return different kinds of tx packet
+    int getTxSettingsPacket (settings_t settings, byte* buffer);
+	int getTxConnectPacket (byte* buffer);
+	int getTxInfoPacket (byte* buffer, info_t kind);
 
 private:
+	#if DEBUG
+	DEBUG_CB;
+	void log (const char* msg);
+	#endif
 	
 	/* 
 	The temperatures byte values are a constant offset from the
-	degrees Celcius value. If this is ever proven to not work	
-	in all cases, the below routines will need to be modified.
+	degrees Celcius value. These routines check the range and
+	convert from encoded byte to degrees Celcius.
 	*/
-	// Room Temperature
 	static inline byte roomTempToByte(int roomTemp) {
 		return (roomTemp >= 10 && roomTemp <= 41)?byte(roomTemp - 10):0;
 	}
 	static inline int byteToRoomTemp(byte b) {
 		return (b >= 0x00 && b <= 0x1f)?int(b + 10):0;
 	}
-	// Control Temperature
 	static inline byte tempToByte(int temp) {
 		return (temp >= 31 && temp <= 16)?byte(temp - 31):0;
 	}
@@ -142,123 +208,59 @@ private:
 		return (b >= 0x00 && b <= 0x0f)?int(b + 31):0;
 	}
 	
+	// Calculate the checksum for given bytes.
 	static byte calculateChecksum(byte* data, int len);
-
-	
-    class rxPacket
-	{
-		friend class mitsiLib;
-		public:
-
-			rxPacket();	
-
-			int addByte(byte b);
-
-			bool complete();
-
-			bool valid();
-
-			mitsiLib::msgData_t getData();
-
-			void reset();
-			
-		private:
-			static const int MAX_SIZE=32;
-			byte buffer[MAX_SIZE];
-			int cursor;
-	};
-    
-	rxPacket thePacket = rxPacket();
 	
     /* Constants */
-    static const byte PACKET_START_VALUE = 0xfc;
-
-    /* RX packet data */
-    static const int RX_HEADER_LEN = 5;
-    static const int RX_CHECKSUM_LEN = 1;
-
-    static const int RX_HEADER_START_POS = 0;
-    static const int RX_KIND_POS = 1;
-    static const int RX_HEADER_END_POS = 4;
-    static const int RX_DATA_LEN_POS = 4;
-    static const int RX_DATA_START_POS = 5;
-    static const int RX_TYPE_POS = 5;
-
-    static const int RX_OK = 0x61;
-    static const int RX_DATA_PACKET = 0x62;
-
-    static const int RX_SETTINGS = 0x02;
-    static const int RX_ROOMTEMP = 0x03;
-
-    static const byte RX_HEADER_0 = 0xfc;
-    static const byte RX_HEADER_2 = 0x01;
-    static const byte RX_HEADER_3 = 0x30;
 	
-	static const int RX_RT_ROOM_TEMP_POS = 8;
+	// All Packets
+	static const int HEADER_LEN   = 5;
+	static const int CHECKSUM_LEN = 1;
 	
-    static const int RX_SET_POWER_POS = 8;
-    static const int RX_SET_MODE_POS  = 9;
-    static const int RX_SET_TEMP_POS  = 10;
-    static const int RX_SET_FAN_POS   = 11;
-    static const int RX_SET_VANE_POS  = 12;
-    // 13 .. 14 not used ?
-    static const int RX_SET_WIDEVANE_POS = 15;
-    // 16 .. 20 not used ?
-    static const int RX_SET_CHECKSUM_POS = 21;
-
-    /*
-    Connect Packet
-    */
-    static const int CONNECT_PACKET_LEN = 8;
-    const byte CONNECT[CONNECT_PACKET_LEN] = {0xfc, 0x5a, 0x01, 0x30, 0x02, 0xca, 0x01, 0xa8};
-
-    /*
-    Infomode Packet
-    */
-    static const int INFO_PACKET_LEN = 21;
-    static const int INFO_HEADER_LEN = 5;
-
-    static const int HEADER_START = 0;
-    static const int HEADER_END = 4;
-    static const int INFO_POS = 5;
-    // 6 .. 20 unused?
-    static const int INFO_CHECKSUM_POS = 21;
-
-	static const int INFOMODE_LEN = 2;
-    const byte INFO_HEADER[INFO_HEADER_LEN]  = {0xfc, 0x42, 0x01, 0x30, 0x10};
-    const byte INFOMODE[INFOMODE_LEN] = {0x02, 0x03};
-
-    /*
-    Control Packet
-    */
-    static const int CTRL_PACKET_LEN   = 21;
-    static const int CTRL_HEADER_LEN  = 8;
-
-    static const int CTRL_HEADER_START = 0;
-    static const int CTRL_HEADER_END   = 7;
-    static const int CTRL_POWER_POS    = 8;
-    static const int CTRL_MODE_POS     = 9;
-    static const int CTRL_TEMP_POS     = 10;
-    static const int CTRL_FAN_POS      = 11;
-    static const int CTRL_VANE_POS     = 12;
-    // 13 .. 14 not used ?
-    static const int CTRL_WIDEVANE_POS = 15;
-    // 16 .. 20 not used ?
-    static const int CTRL_CHECKSUM_POS = 21;
-
-    const byte CTRL_HEADER[CTRL_HEADER_LEN]   = {0xfc, 0x41, 0x01, 0x30, 0x10, 0x01, 0x9f, 0x00};
-
-    // Value mapping
-    static const int POWER_LEN = 2;
-    static const int MODE_LEN = 5;
-    static const int TEMP_LEN = 16;
-    static const int FAN_LEN = 6;
-    static const int VANE_LEN = 7;
-    static const int WIDEVANE_LEN = 7;
-    static const int ROOMTEMP_LEN = 32;
-
-
+	static const int HEADER_1_POS = 0;
+	static const int MSG_TYPE_POS = 1;
+	static const int HEADER_3_POS = 2;
+	static const int HEADER_4_POS = 3;
+	static const int LENGTH_POS   = 4;
+	
+	// Data Packet
+	static const int DATA_PACKET_LEN    = 21;
+	static const int DATA_KIND_POS      = 5;
+	static const int DATA_6             = 6;
+	static const int DATA_7             = 7;
+    static const int DATA_POWER_POS     = 8;
+	static const int DATA_ROOM_TEMP_POS = 8;
+    static const int DATA_MODE_POS      = 9;
+    static const int DATA_TEMP_POS      = 10;
+    static const int DATA_FAN_POS       = 11;
+    static const int DATA_VANE_POS      = 12;
+	static const int DATA_13            = 13;
+	static const int DATA_14            = 14;
+    static const int DATA_WIDEVANE_POS  = 15;
+	static const int DATA_16            = 16;
+	static const int DATA_17            = 17;
+	static const int DATA_18            = 18;
+	static const int DATA_19            = 19;
+    static const int DATA_CHECKSUM_POS  = 20;
+	
+	// Connect Packet 
+	static const int CONNECT_PACKET_LEN   = 8;
+    static const int CONNECT_1_POS        = 5;
+    static const int CONNECT_2_POS        = 6;
+    static const int CONNECT_CHECKSUM_POS = 7;
+   
+    // Info Packet
+	static const int INFO_PACKET_LEN   = 21;
+    static const int INFO_KIND         = 5;
+    static const int INFO_CHECKSUM_POS = 20;
+	
+	
+	// Data values
+	static const int HEADER_1 = 0xfc;
+	static const int HEADER_3 = 0x01;
+	static const int HEADER_4 = 0x30;
+	
+	static const int CONNECT_1 = 0xca; // seems to be constant
+	static const int CONNECT_2 = 0x01; // seems to be constant
+	
 };
-
-
-
