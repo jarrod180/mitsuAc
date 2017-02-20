@@ -10,7 +10,7 @@ IPAddress subnet(255, 255, 255, 0);
 
 void setup() {
   WiFi.config(ip, gateway, subnet);
-  WiFi.begin("bdc02", "rj68ggwc3");  
+  WiFi.begin("xxx", "xxx");  
   while (WiFi.status() != WL_CONNECTED) {
     delay(250);
   }  
