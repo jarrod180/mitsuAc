@@ -28,7 +28,7 @@ One might receive a string such as:
 
 And control the unit with:
 
-    {'power':'on;}
+    {'power':'on'}
 or
 
     {'power':'on','mode':'auto','fan':'1','vane':'3'}
