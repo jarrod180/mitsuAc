@@ -15,10 +15,11 @@ static const char* mqttPass="mqtt";
 static const char* ssid = "xxx";
 static const char* password="xxx";
 
-
+/* DEBUG
 void debug(const char* msg){
   mqttClient.publish(mqttStateTopic, msg, false);
 }
+*/
 
 void mqttConnect() {
   char strOnline[64],strOffline[64];
@@ -59,7 +60,7 @@ void setup() {
   // Set up the MQTT client
   mqttClient.setServer(mqttServer, 1883);
   mqttClient.setCallback(mqttCallback);
-  ac.setDebugCb(&debug);
+  //ac.setDebugCb(&debug); //DEBUG
 }
 
 char lastSettings[128];

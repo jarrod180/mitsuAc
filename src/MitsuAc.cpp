@@ -21,7 +21,7 @@
 #include <ArduinoJson.h>
 
 /* DEBUG */
-#define DEBUG 2
+#define DEBUG 0
 #if DEBUG
 void MitsuAc::log (const char* msg){
     if (debugCb){

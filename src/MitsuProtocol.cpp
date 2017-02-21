@@ -20,22 +20,20 @@
 #include <MitsuAc.h>
 
 /* DEBUG */
-#define DEBUG 2
+#define DEBUG 0
 #if DEBUG
 void MitsuProtocol::log (const char* msg){
     if (debugCb){
         debugCb (msg);
     }
 }
+void MitsuProtocol::setDebugCb(DEBUG_CB){
+    this->debugCb = debugCb;
+}
 #endif
 /* END DEBUG */
 
-
 MitsuProtocol::MitsuProtocol() {
-}
-
-void MitsuProtocol::setDebugCb(DEBUG_CB){
-    this->debugCb = debugCb;
 }
 
 int MitsuProtocol::getTxSettingsPacket (byte* buffer, settings_t settings){
