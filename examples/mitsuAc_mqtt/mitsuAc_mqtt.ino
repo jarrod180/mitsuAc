@@ -10,10 +10,15 @@ static const char* mqttServer="192.168.1.120";
 static const char* mqttClientId ="aircon1";
 static const char* mqttStateTopic="home/aircon1";
 static const char* mqttSetTopic="home/aircon1/set";
-static const char* mqttUser="xxx";
-static const char* mqttPass="xxx";
+static const char* mqttUser="mqtt";
+static const char* mqttPass="mqtt";
 static const char* ssid = "xxx";
 static const char* password="xxx";
+
+
+void debug(const char* msg){
+  mqttClient.publish(mqttStateTopic, msg, false);
+}
 
 void mqttConnect() {
   char strOnline[64],strOffline[64];
@@ -44,7 +49,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length){
     char str[length];
     memcpy(str,payload,length);
     str[length] = '\0';
-    ac.putSettingsJson(str);
+    ac.putSettingsJson(str,length);
 };
 
 void setup() {
@@ -54,6 +59,7 @@ void setup() {
   // Set up the MQTT client
   mqttClient.setServer(mqttServer, 1883);
   mqttClient.setCallback(mqttCallback);
+  ac.setDebugCb(&debug);
 }
 
 char lastSettings[128];
@@ -66,7 +72,7 @@ void loop() {
     mqttConnect();
   }
   mqttClient.loop();
-  
+
   ac.monitor();
 
   char newSettings[128];

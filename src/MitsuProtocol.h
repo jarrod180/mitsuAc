@@ -39,7 +39,7 @@ public:
         powerOn  = 0x01
     };
     const char* power_tToString (power_t power);
-    void power_tFromString (const char* powerStr, power_t power, bool success);
+    void power_tFromString (const char* powerStr, power_t* power, bool success);
     
     enum class mode_t : byte
     {
@@ -50,7 +50,7 @@ public:
         modeAuto = 0x08
     };
     const char* mode_tToString (mode_t mode);
-    void mode_tFromString (const char* modeStr, mode_t mode, bool success);
+    void mode_tFromString (const char* modeStr, mode_t* mode, bool success);
     
     enum class fan_t : byte 
     {
@@ -62,7 +62,7 @@ public:
         fan4     = 0x06
     };
     const char* fan_tToString (fan_t fan);
-    void fan_tFromString (const char* fanStr, fan_t fan, bool success);
+    void fan_tFromString (const char* fanStr, fan_t* fan, bool success);
     
     enum class vane_t : byte
     {
@@ -75,7 +75,7 @@ public:
         vaneSwing = 0x07
     };
     const char* vane_tToString (vane_t vane); 
-    void vane_tFromString (const char* vaneStr, vane_t vane, bool success); 
+    void vane_tFromString (const char* vaneStr, vane_t* vane, bool success); 
     
     enum class wideVane_t : byte 
     {
@@ -88,7 +88,7 @@ public:
         wideVaneSwing        = 0x0c
     };
     const char* wideVane_tToString (wideVane_t wideVane);
-    void wideVane_tFromString (const char* wideVaneStr, wideVane_t wideVane, bool success);
+    void wideVane_tFromString (const char* wideVaneStr, wideVane_t* wideVane, bool success);
 
     struct settings_t {
        power_t power;
@@ -104,6 +104,13 @@ public:
        int tempDegC;
        bool tempDegCValid;
     };
+
+    const settings_t emptySettings = {MitsuProtocol::power_t::powerOff,false,
+                                              MitsuProtocol::mode_t::modeFan,false,
+                                              MitsuProtocol::fan_t::fan1,false,
+                                              MitsuProtocol::vane_t::vane1,false,
+                                              MitsuProtocol::wideVane_t::wideVaneCenter,false,
+                                              0,false}; 
 
     struct roomTemp_t {
        int roomTemp;
@@ -146,6 +153,15 @@ public:
        rxCurrentSettings = 0x62,
        rxStatusOk        = 0x61,
        rxStatusNok       = 0x7a // Is this really a nok?
+    };
+    
+    enum control_t {
+        power    = 0x01,
+        mode     = 0x02,
+        temp     = 0x04,
+        fan      = 0x08,
+        vane     = 0x10,
+        wideVane = 0x80
     };
 
     struct msg_t
@@ -214,7 +230,7 @@ private:
         return (b >= 0x00 && b <= 0x1f)?int(b + 10):0;
     }
     static inline byte tempToByte(int temp) {
-        return (temp <= 31 && temp >= 16)?byte(temp - 31):0;
+        return (temp <= 31 && temp >= 16)?byte(31-temp):0;
     }
     static inline int byteToTemp(byte b) {
         return (b >= 0x00 && b <= 0x0f)?int(31 - b):0;
@@ -236,9 +252,9 @@ private:
     static const int LENGTH_POS   = 4;
     
     // Data Packet
-    static const int DATA_PACKET_LEN    = 21;
+    static const int DATA_PACKET_LEN    = 22;
     static const int DATA_KIND_POS      = 5;
-    static const int DATA_6             = 6;
+    static const int DATA_CONTROL       = 6;
     static const int DATA_7             = 7;
     static const int DATA_POWER_POS     = 8;
     static const int DATA_ROOM_TEMP_POS = 8;
@@ -253,7 +269,8 @@ private:
     static const int DATA_17            = 17;
     static const int DATA_18            = 18;
     static const int DATA_19            = 19;
-    static const int DATA_CHECKSUM_POS  = 20;
+    static const int DATA_20            = 20;
+    static const int DATA_CHECKSUM_POS  = 21;
     
     // Connect Packet 
     static const int CONNECT_PACKET_LEN   = 8;
@@ -262,9 +279,9 @@ private:
     static const int CONNECT_CHECKSUM_POS = 7;
    
     // Info Packet
-    static const int INFO_PACKET_LEN   = 21;
+    static const int INFO_PACKET_LEN   = 22;
     static const int INFO_KIND         = 5;
-    static const int INFO_CHECKSUM_POS = 20;
+    static const int INFO_CHECKSUM_POS = 21;
     
     // Data values
     static const int HEADER_1 = 0xfc;

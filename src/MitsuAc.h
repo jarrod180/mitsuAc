@@ -41,7 +41,7 @@ class MitsuAc
     void getSettingsJson(char* settings, size_t len);
     
     // Put immediately the requested settings
-    int putSettingsJson(const char* jsonSettings);
+    int putSettingsJson(const char* jsonSettings, size_t len);
 
     #if DEBUG
     void setDebugCb(DEBUG_CB);
@@ -75,7 +75,7 @@ class MitsuAc
     unsigned long lastInfoRequestTime = 0;
 
     // Serial object and methods
-    void write(byte* buf, int len);
+    void sendBytes(byte* buf, int len);
     HardwareSerial * _HardSerial;
 };
 #endif

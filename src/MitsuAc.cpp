@@ -21,7 +21,7 @@
 #include <ArduinoJson.h>
 
 /* DEBUG */
-#define DEBUG 1
+#define DEBUG 2
 #if DEBUG
 void MitsuAc::log (const char* msg){
     if (debugCb){
@@ -42,7 +42,7 @@ MitsuAc::MitsuAc(HardwareSerial *serial) {
 void MitsuAc::requestInfo(MitsuProtocol::info_t kind){
     byte buf[32] = {0};
     int len = ml.getTxInfoPacket (buf, kind);
-    write (buf, len);
+    sendBytes (buf, len);
 }
 
 void MitsuAc::connect() {
@@ -50,11 +50,11 @@ void MitsuAc::connect() {
   delay(1000);
   byte buf[16] = {0};
   int len = ml.getTxConnectPacket (buf);
-  write(buf, len);
+  sendBytes(buf, len);
 }
 
 void MitsuAc::getSettingsJson(char* settings, size_t len){
-   char buf[sizeof(int)+1];
+   char buf[3];
    strcpy(settings, "{'power':'"); 
    strcat(settings, ml.power_tToString(lastSettings.power));
    strcat(settings, "','mode':'");
@@ -66,60 +66,74 @@ void MitsuAc::getSettingsJson(char* settings, size_t len){
    strcat(settings, "','widevane':'");
    strcat(settings, ml.wideVane_tToString(lastSettings.wideVane));
    strcat(settings, "','temp':");
-   itoa(lastSettings.tempDegC,buf,10);
+   itoa(lastSettings.tempDegC,&buf[0],10);
    strcat(settings, buf);
-   itoa(lastRoomTemp.roomTemp,buf,10);
+   strcat(settings, "','roomTemp':");
+   itoa(lastRoomTemp.roomTemp,&buf[0],10);
    strcat(settings, buf);
    strcat(settings, "}");
    len = strlen(settings);
 }
 
-int MitsuAc::putSettingsJson(const char* jsonSettings){
-    StaticJsonBuffer<128> jsonBuffer;
+int MitsuAc::putSettingsJson(const char* jsonSettings, size_t len){
+    StaticJsonBuffer<256> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(jsonSettings);
-    MitsuProtocol::settings_t newSettings = lastSettings;
+    MitsuProtocol::settings_t newSettings = ml.emptySettings;
     bool success=false;
     bool msgOk = true;
     
     if (root.containsKey("power") && root["power"].is<const char*>()){
-      ml.power_tFromString(root["power"],newSettings.power,success);
+      ml.power_tFromString(root["power"],&newSettings.power,success);
+      newSettings.powerValid = true;
       msgOk = (msgOk & success);
     }else{
+      newSettings.powerValid = false;
       msgOk = false;
     }
     if (root.containsKey("mode") && root["mode"].is<const char*>()){
-      ml.mode_tFromString(root["mode"],newSettings.mode,success);
+      ml.mode_tFromString(root["mode"],&newSettings.mode,success);
       msgOk = (msgOk & success);
+      newSettings.modeValid = true;
     }else{
       msgOk = false;
+      newSettings.modeValid = false;
     }
-    if (root.containsKey("fan") && root["fan"].is<const char*>()){
-      ml.fan_tFromString(root["fan"],newSettings.fan,success);
+    if (root.containsKey("fan")){
+      ml.fan_tFromString(root["fan"],&newSettings.fan,success);
       msgOk = (msgOk & success);
+      newSettings.fanValid = true;
     }else{
       msgOk = false;
+      newSettings.fanValid = false;
     }    
     if (root.containsKey("vane") && root["vane"].is<const char*>()){
-      ml.vane_tFromString(root["vane"],newSettings.vane,success);
+      ml.vane_tFromString(root["vane"],&newSettings.vane,success);
       msgOk = (msgOk & success);
+      newSettings.vaneValid = true;
     }else{
       msgOk = false;
+      newSettings.vaneValid = false;
     }    
     if (root.containsKey("widevane") && root["widevane"].is<const char*>()){
-      ml.wideVane_tFromString(root["widevane"],newSettings.wideVane,success);
+      ml.wideVane_tFromString(root["widevane"],&newSettings.wideVane,success);
       msgOk = (msgOk & success);
+      newSettings.wideVaneValid = true;
     }else{
       msgOk = false;
+      newSettings.wideVaneValid = false;
     }    
     if (root.containsKey("temp") && root["temp"].is<int>()){
       newSettings.tempDegC = root["temp"];
+      newSettings.tempDegCValid = true;
     }else{
       msgOk = false;
+      newSettings.tempDegCValid = false;
     }
 
+
     byte buf[128];
-    int len = ml.getTxSettingsPacket(buf, newSettings);
-    write (buf,len);
+    int len2 = ml.getTxSettingsPacket(buf, newSettings);
+    sendBytes (buf,len2);
 
     return msgOk?0:-1;
 }
@@ -150,10 +164,21 @@ void MitsuAc::monitor() {
 }
 
 // Private Methods
-void MitsuAc::write(byte* buf, int len){
+void MitsuAc::sendBytes(byte* buf, int len){
+    #if DEBUG > 1
+    log ("MitsuAc::sendBytes(), len:");
+    log (String(len).c_str());
+    String msg("Tx Pkt: ");
+    for(int i = 0; i < len; i++) {
+        msg = msg + " 0x";
+        msg = msg + String(buf[i],HEX);
+    }
+    log(msg.c_str());
+    #endif
+
     if (_HardSerial){
         for(int i = 0; i < len; i++) {
-          #if (DEBUG > 1)
+          #if DEBUG > 2
           log (String(String("Tx: 0x") + String(buf[i],HEX)).c_str());
           #endif
           _HardSerial->write((uint8_t)buf[i]);

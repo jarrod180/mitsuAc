@@ -20,7 +20,7 @@
 #include <MitsuAc.h>
 
 /* DEBUG */
-#define DEBUG 1
+#define DEBUG 2
 #if DEBUG
 void MitsuProtocol::log (const char* msg){
     if (debugCb){
@@ -53,14 +53,33 @@ int MitsuProtocol::getTxSettingsPacket (byte* buffer, settings_t settings){
     buffer[HEADER_3_POS]      = HEADER_3;
     buffer[HEADER_4_POS]      = HEADER_4;
     buffer[LENGTH_POS]        = DATA_PACKET_LEN - CHECKSUM_LEN - HEADER_LEN;
-    buffer[DATA_KIND_POS]     = static_cast<byte>(info_t::settings);
-    buffer[DATA_POWER_POS]    = settings.powerValid?static_cast<byte>(settings.power):0;
-    buffer[DATA_MODE_POS]     = settings.powerValid?static_cast<byte>(settings.mode):0;    
-    buffer[DATA_TEMP_POS]     = tempToByte(settings.tempDegC);
-    buffer[DATA_FAN_POS]      = settings.powerValid?static_cast<byte>(settings.fan):0;
-    buffer[DATA_VANE_POS]     = settings.powerValid?static_cast<byte>(settings.vane):0;
-    buffer[DATA_WIDEVANE_POS] = settings.powerValid?static_cast<byte>(settings.wideVane):0;
-    
+    buffer[DATA_KIND_POS]     = static_cast<byte>(dataKind_t::settingsRequest);
+
+    if (settings.powerValid){
+        buffer[DATA_POWER_POS] = static_cast<byte>(settings.power);
+        buffer[DATA_CONTROL] += static_cast<byte>(control_t::power);
+    }
+    if (settings.modeValid){
+        buffer[DATA_MODE_POS] = static_cast<byte>(settings.mode);
+        buffer[DATA_CONTROL] += static_cast<byte>(control_t::mode);
+    }
+    if (settings.tempDegCValid){
+        buffer[DATA_TEMP_POS] = tempToByte(settings.tempDegC);
+        buffer[DATA_CONTROL] += static_cast<byte>(control_t::temp);
+    }
+    if (settings.fanValid){
+        buffer[DATA_FAN_POS] = static_cast<byte>(settings.fan);
+        buffer[DATA_CONTROL] += static_cast<byte>(control_t::fan);
+    }
+    if (settings.vaneValid){
+        buffer[DATA_VANE_POS] = static_cast<byte>(settings.vane);
+        buffer[DATA_CONTROL] += static_cast<byte>(control_t::vane);
+    }
+    if (settings.wideVaneValid){
+        buffer[DATA_WIDEVANE_POS] = static_cast<byte>(settings.wideVane);
+        buffer[DATA_CONTROL] += static_cast<byte>(control_t::wideVane);
+    }
+
     // Checksum
     buffer[DATA_CHECKSUM_POS] = MitsuProtocol::calculateChecksum(buffer, DATA_PACKET_LEN - 1);
 
@@ -130,11 +149,11 @@ const char* MitsuProtocol::power_tToString (power_t power){
     }
     return "undefined";
 }
-void MitsuProtocol::power_tFromString (const char* powerStr, power_t power, bool success){
+void MitsuProtocol::power_tFromString (const char* powerStr, power_t* power, bool success){
     success=true;
-    if (powerStr=="on"){power=power_t::powerOn;}
-    else if(powerStr=="off"){power=power_t::powerOff;}
-    else{power=power_t::powerOff;success=false;}
+    if (strcmp(powerStr,"on")==0){*power=power_t::powerOn;}
+    else if(strcmp(powerStr,"off")==0){*power=power_t::powerOff;}
+    else{*power=power_t::powerOff;success=false;}
 }
 
 const char* MitsuProtocol::mode_tToString (mode_t mode){
@@ -147,14 +166,14 @@ const char* MitsuProtocol::mode_tToString (mode_t mode){
     }
     return "undefined";
 }
-void MitsuProtocol::mode_tFromString (const char* modeStr, mode_t mode, bool success){
+void MitsuProtocol::mode_tFromString (const char* modeStr, mode_t* mode, bool success){
     success=true;
-    if(modeStr=="heat"){ mode=mode_t::modeHeat;}
-    else if(modeStr==  "dry"){ mode=mode_t::modeDry;}
-    else if(modeStr==  "fan"){ mode=mode_t::modeFan;}
-    else if(modeStr==  "cool"){ mode=mode_t::modeCool;}
-    else if(modeStr==  "auto"){ mode=mode_t::modeAuto;}
-    else{mode=mode_t::modeFan;success=false;}
+    if(strcmp(modeStr,"heat")==0){ *mode=mode_t::modeHeat;}
+    else if(strcmp(modeStr,"dry")==0){ *mode=mode_t::modeDry;}
+    else if(strcmp(modeStr,"fan")==0){ *mode=mode_t::modeFan;}
+    else if(strcmp(modeStr,"cool")==0){ *mode=mode_t::modeCool;}
+    else if(strcmp(modeStr,"auto")==0){ *mode=mode_t::modeAuto;}
+    else{*mode=mode_t::modeFan;success=false;}
 }
 
 const char* MitsuProtocol::fan_tToString (fan_t fan){
@@ -168,16 +187,16 @@ const char* MitsuProtocol::fan_tToString (fan_t fan){
     }
     return "undefined";
 }
-void MitsuProtocol::fan_tFromString (const char* fanStr, fan_t fan, bool success){
+void MitsuProtocol::fan_tFromString (const char* fanStr, fan_t* fan, bool success){
     success=true;
 
-    if(fanStr=="auto"){ fan= fan_t::fanAuto;}
-    else if(fanStr== "quiet"){ fan= fan_t::fanQuiet;}
-    else if(fanStr== "1"){ fan= fan_t::fan1;}
-    else if(fanStr== "2"){ fan= fan_t::fan2;}
-    else if(fanStr== "3"){ fan=  fan_t::fan3;}
-    else if(fanStr== "4"){fan= fan_t::fan4;}
-    else{fan=fan_t::fan1;success=false;}
+    if(strcmp(fanStr,"auto")==0){ *fan= fan_t::fanAuto;}
+    else if(strcmp(fanStr,"quiet")==0){ *fan= fan_t::fanQuiet;}
+    else if(strcmp(fanStr,"1")==0){ *fan= fan_t::fan1;}
+    else if(strcmp(fanStr,"2")==0){ *fan= fan_t::fan2;}
+    else if(strcmp(fanStr,"3")==0){ *fan=  fan_t::fan3;}
+    else if(strcmp(fanStr,"4")==0){*fan= fan_t::fan4;}
+    else{*fan=fan_t::fan1;success=false;}
 
 }
 
@@ -195,16 +214,16 @@ const char* MitsuProtocol::vane_tToString (vane_t vane){
     return "undefined";
 }
 
-void MitsuProtocol::vane_tFromString (const char* vaneStr, vane_t vane, bool success){
+void MitsuProtocol::vane_tFromString (const char* vaneStr, vane_t* vane, bool success){
     success=true;
-        if(vaneStr=="auto"){vane= vane_t::vaneAuto;}
-        else if(vaneStr=="1"){vane= vane_t::vane1;}
-        else if(vaneStr=="2"){vane= vane_t::vane2;}
-        else if(vaneStr=="3"){vane= vane_t::vane3;}
-        else if(vaneStr=="4"){vane= vane_t::vane4;}
-        else if(vaneStr=="5"){vane= vane_t::vane5;}
-        else if(vaneStr=="swing"){vane= vane_t::vane3;}
-        else{vane=vane_t::vane3;success=false;}
+        if(strcmp(vaneStr,"auto")==0){*vane= vane_t::vaneAuto;}
+        else if(strcmp(vaneStr,"1")==0){*vane= vane_t::vane1;}
+        else if(strcmp(vaneStr,"2")==0){*vane= vane_t::vane2;}
+        else if(strcmp(vaneStr,"3")==0){*vane= vane_t::vane3;}
+        else if(strcmp(vaneStr,"4")==0){*vane= vane_t::vane4;}
+        else if(strcmp(vaneStr,"5")==0){*vane= vane_t::vane5;}
+        else if(strcmp(vaneStr,"swing")==0){*vane= vane_t::vaneSwing;}
+        else{*vane=vane_t::vane3;success=false;}
 }
 
 const char* MitsuProtocol::wideVane_tToString (wideVane_t wideVane){
@@ -219,16 +238,16 @@ const char* MitsuProtocol::wideVane_tToString (wideVane_t wideVane){
     }
     return "undefined";
 }
-void MitsuProtocol::wideVane_tFromString (const char* wideVaneStr, wideVane_t wideVane, bool success){
+void MitsuProtocol::wideVane_tFromString (const char* wideVaneStr, wideVane_t* wideVane, bool success){
     success=true;
-    if(wideVaneStr=="full_left"){ wideVane= wideVane_t::wideVaneFullLeft;}
-    else if(wideVaneStr== "half_left"){ wideVane= wideVane_t::wideVaneHalfLeft;}
-    else if(wideVaneStr== "center"){ wideVane= wideVane_t::wideVaneCenter;}
-    else if(wideVaneStr== "half_right"){ wideVane= wideVane_t::wideVaneHalfRight;}
-    else if(wideVaneStr== "full_right"){ wideVane= wideVane_t::wideVaneFullRight;}
-    else if(wideVaneStr== "left_and_right"){ wideVane= wideVane_t::wideVaneLeftAndRight;}
-    else if(wideVaneStr== "swing"){ wideVane= wideVane_t::wideVaneSwing;}
-    else{wideVane=wideVane_t::wideVaneCenter;success=false;}
+    if(strcmp(wideVaneStr,"full_left")==0){ *wideVane= wideVane_t::wideVaneFullLeft;}
+    else if(strcmp(wideVaneStr, "half_left")==0){ *wideVane= wideVane_t::wideVaneHalfLeft;}
+    else if(strcmp(wideVaneStr, "center")==0){ *wideVane= wideVane_t::wideVaneCenter;}
+    else if(strcmp(wideVaneStr, "half_right")==0){ *wideVane= wideVane_t::wideVaneHalfRight;}
+    else if(strcmp(wideVaneStr, "full_right")==0){ *wideVane= wideVane_t::wideVaneFullRight;}
+    else if(strcmp(wideVaneStr, "left_and_right")==0){ *wideVane= wideVane_t::wideVaneLeftAndRight;}
+    else if(strcmp(wideVaneStr, "swing")==0){ *wideVane= wideVane_t::wideVaneSwing;}
+    else{*wideVane=wideVane_t::wideVaneCenter;success=false;}
 }
 
 /* packetBuilder */
@@ -242,7 +261,7 @@ MitsuProtocol::packetBuilder::packetBuilder(MitsuProtocol* parent) {
 };    
 
 int MitsuProtocol::packetBuilder::addByte(byte b){
-    #if (DEBUG > 1)
+    #if (DEBUG > 2)
     parent->log (String(String("Rx: 0x") + String(b,HEX)).c_str());
     #endif
       
@@ -290,9 +309,17 @@ bool MitsuProtocol::packetBuilder::valid(){
 }
 
 MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
-    #if (DEBUG > 0)
+    #if (DEBUG > 1)
     parent->log("packetBuilder.getData()");
+  
+    String dbg("Rx Pkt: ");
+    for(int i = 0; i < 22; i++) {
+        dbg = dbg + " 0x";
+        dbg = dbg + String(buffer[i],HEX);
+    }
+    parent->log(dbg.c_str());
     #endif
+
         
     MitsuProtocol::msg_t msg;
     
