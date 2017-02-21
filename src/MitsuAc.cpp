@@ -53,15 +53,25 @@ void MitsuAc::connect() {
   write(buf, len);
 }
 
-void MitsuAc::getSettingsJson(String& settings){
-   settings = String(String("{'power':'") + ml.power_tToString(lastSettings.power));
-   settings += String(String("','mode':'") + ml.mode_tToString(lastSettings.mode));
-   settings += String(String("','fan':'") + ml.fan_tToString(lastSettings.fan));
-   settings += String(String("','vane':'") + ml.vane_tToString(lastSettings.vane));
-   settings += String(String("','widevane':'") + ml.wideVane_tToString(lastSettings.wideVane));
-   settings += String(String("','temp':") + lastSettings.tempDegC);
-   settings += String(String("','roomtemp':") + lastRoomTemp.roomTemp);
-   settings += String("}");
+void MitsuAc::getSettingsJson(char* settings, size_t len){
+   char buf[sizeof(int)+1];
+   strcpy(settings, "{'power':'"); 
+   strcat(settings, ml.power_tToString(lastSettings.power));
+   strcat(settings, "','mode':'");
+   strcat(settings, ml.mode_tToString(lastSettings.mode));
+   strcat(settings, "','fan':'");
+   strcat(settings, ml.fan_tToString(lastSettings.fan));
+   strcat(settings, "','vane':'");
+   strcat(settings, ml.vane_tToString(lastSettings.vane));
+   strcat(settings, "','widevane':'");
+   strcat(settings, ml.wideVane_tToString(lastSettings.wideVane));
+   strcat(settings, "','temp':");
+   itoa(lastSettings.tempDegC,buf,10);
+   strcat(settings, buf);
+   itoa(lastRoomTemp.roomTemp,buf,10);
+   strcat(settings, buf);
+   strcat(settings, "}");
+   len = strlen(settings);
 }
 
 int MitsuAc::putSettingsJson(const char* jsonSettings){

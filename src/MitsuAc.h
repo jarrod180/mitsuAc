@@ -38,7 +38,7 @@ class MitsuAc
     void monitor();
     
     // Get current settings, json encoded
-    void getSettingsJson(String& roomTemp);
+    void getSettingsJson(char* settings, size_t len);
     
     // Put immediately the requested settings
     int putSettingsJson(const char* jsonSettings);
