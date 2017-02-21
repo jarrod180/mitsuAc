@@ -1,7 +1,7 @@
 ##Arduino/ESP8266 library for Mitsubishi Aircon/HVAC/Heatpump via serial connector CN105
 #####Working but under development!
 
-
+Check out the wiki (https://github.com/jarrod180/mitsuAc/wiki)
 
 The library provides an encode/decode class for protocol actions and also a controller class for simplified interaction from the user code.
 
