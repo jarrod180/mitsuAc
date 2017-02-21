@@ -7,7 +7,7 @@ The library provides an encode/decode class for protocol actions and also a cont
 
 It was designed for use with (most/some?) recent mitsubishi heat pump/air con/hvac units and possibly others. The unit requires the CN105 connector which exposes a UART, 5v and 12v.
 
-I used an Adafruit Huzzah Feather ESP8266, which is a 3v chip but the feather has an onboard regulator and the RX has a 5v level shifter. TX line from the feather only supplies 3v but the air con is happy with that.
+I used an Adafruit Huzzah Feather ESP8266, which is a 3v chip but the feather has an onboard regulator and the RX has a 5v level shifter. TX line from the feather only supplies 3v but the air con is happy with that. I put 10k pull up resistors between TX and RX lines to 5v.
 
 Might work with other Arduino boards but you may need voltage regulators or adjust some of the library.
 
