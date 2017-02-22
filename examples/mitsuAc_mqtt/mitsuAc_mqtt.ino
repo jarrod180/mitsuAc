@@ -7,9 +7,9 @@ PubSubClient mqttClient(wifi);
 MitsuAc ac(&Serial);
 
 static const char* mqttServer="192.168.1.120";
-static const char* mqttClientId ="aircon1";
-static const char* mqttStateTopic="home/aircon1";
-static const char* mqttSetTopic="home/aircon1/set";
+static const char* mqttClientId ="bed3ac";
+static const char* mqttStateTopic="home/bed3ac";
+static const char* mqttSetTopic="home/bed3ac/set";
 static const char* mqttUser="mqtt";
 static const char* mqttPass="mqtt";
 static const char* ssid = "xxx";

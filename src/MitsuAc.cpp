@@ -55,20 +55,20 @@ void MitsuAc::connect() {
 
 void MitsuAc::getSettingsJson(char* settings, size_t len){
    char buf[3];
-   strcpy(settings, "{'power':'"); 
+   strcpy(settings, "{\"power\":\""); 
    strcat(settings, ml.power_tToString(lastSettings.power));
-   strcat(settings, "','mode':'");
+   strcat(settings, "\",\"mode\":\"");
    strcat(settings, ml.mode_tToString(lastSettings.mode));
-   strcat(settings, "','fan':'");
+   strcat(settings, "\",\"fan\":\"");
    strcat(settings, ml.fan_tToString(lastSettings.fan));
-   strcat(settings, "','vane':'");
+   strcat(settings, "\",\"vane\":\"");
    strcat(settings, ml.vane_tToString(lastSettings.vane));
-   strcat(settings, "','widevane':'");
+   strcat(settings, "\",\"widevane\":\"");
    strcat(settings, ml.wideVane_tToString(lastSettings.wideVane));
-   strcat(settings, "','temp':");
+   strcat(settings, "\",\"temp\":");
    itoa(lastSettings.tempDegC,&buf[0],10);
    strcat(settings, buf);
-   strcat(settings, "','roomTemp':");
+   strcat(settings, ",\"roomtemp\":");
    itoa(lastRoomTemp.roomTemp,&buf[0],10);
    strcat(settings, buf);
    strcat(settings, "}");
