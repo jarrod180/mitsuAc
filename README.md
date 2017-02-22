@@ -24,14 +24,14 @@ It's designed to be as simple to use as possible, there are only 4 methods:
     
 One might receive a string such as:
 
-    {'power':'on','mode':'auto','fan':'1','vane':'3','widevane':'center','temp':22','roomTemp':22}
+    {"power":"on","mode":"auto","fan":"auto","vane":"3","widevane":"center","temp":22,"roomTemp":22}
 
 And control the unit with:
 
-    {'power':'on'}
+    {"power":"on"}
 or
 
-    {'power':'on','mode':'auto','fan':'1','vane':'3'}
+    {"power":"on","mode":"auto","fan":"1","vane":"3"}
 
     
 
