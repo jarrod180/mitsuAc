@@ -77,8 +77,7 @@ void loop() {
   ac.monitor();
 
   char newSettings[128];
-  size_t len=0;
-  ac.getSettingsJson(newSettings,len);
+  ac.getSettingsJson(newSettings);
   
   if (strcmp(lastSettings,newSettings) != 0){
     mqttClient.publish(mqttStateTopic, newSettings, true);

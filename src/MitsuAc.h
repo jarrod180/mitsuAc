@@ -38,10 +38,10 @@ class MitsuAc
     void monitor();
     
     // Get current settings, json encoded
-    void getSettingsJson(char* settings, size_t len);
+    void getSettingsJson(char* settings);
     
     // Put immediately the requested settings
-    int putSettingsJson(const char* jsonSettings, size_t len);
+    int putSettingsJson(const char* jsonSettings);
 
     #if DEBUG
     void setDebugCb(DEBUG_CB);

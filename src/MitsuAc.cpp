@@ -53,7 +53,7 @@ void MitsuAc::connect() {
   sendBytes(buf, len);
 }
 
-void MitsuAc::getSettingsJson(char* settings, size_t len){
+void MitsuAc::getSettingsJson(char* settings){
    char buf[3];
    strcpy(settings, "{\"power\":\""); 
    strcat(settings, ml.power_tToString(lastSettings.power));
@@ -72,68 +72,41 @@ void MitsuAc::getSettingsJson(char* settings, size_t len){
    itoa(lastRoomTemp.roomTemp,&buf[0],10);
    strcat(settings, buf);
    strcat(settings, "}");
-   len = strlen(settings);
 }
 
-int MitsuAc::putSettingsJson(const char* jsonSettings, size_t len){
+int MitsuAc::putSettingsJson(const char* jsonSettings){
     StaticJsonBuffer<256> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(jsonSettings);
     MitsuProtocol::settings_t newSettings = ml.emptySettings;
     bool success=false;
-    bool msgOk = true;
+    bool jsonOk = true;
     
-    if (root.containsKey("power") && root["power"].is<const char*>()){
-      ml.power_tFromString(root["power"],&newSettings.power,success);
-      newSettings.powerValid = true;
-      msgOk = (msgOk & success);
+    if (root.containsKey("power")){
+	  if (root["power"].is<const char*>()){
+        ml.power_tFromString(root["power"],&newSettings.power,success);
+        newSettings.powerValid = true;
+        jsonOk = (msgOk & success);
+	  }else{
+	    jsonOk = false;
+	  }
     }else{
       newSettings.powerValid = false;
-      msgOk = false;
+      jsonOk = false;
     }
-    if (root.containsKey("mode") && root["mode"].is<const char*>()){
-      ml.mode_tFromString(root["mode"],&newSettings.mode,success);
-      msgOk = (msgOk & success);
-      newSettings.modeValid = true;
-    }else{
-      msgOk = false;
-      newSettings.modeValid = false;
-    }
-    if (root.containsKey("fan")){
-      ml.fan_tFromString(root["fan"],&newSettings.fan,success);
-      msgOk = (msgOk & success);
-      newSettings.fanValid = true;
-    }else{
-      msgOk = false;
-      newSettings.fanValid = false;
-    }    
-    if (root.containsKey("vane") && root["vane"].is<const char*>()){
-      ml.vane_tFromString(root["vane"],&newSettings.vane,success);
-      msgOk = (msgOk & success);
-      newSettings.vaneValid = true;
-    }else{
-      msgOk = false;
-      newSettings.vaneValid = false;
-    }    
-    if (root.containsKey("widevane") && root["widevane"].is<const char*>()){
-      ml.wideVane_tFromString(root["widevane"],&newSettings.wideVane,success);
-      msgOk = (msgOk & success);
-      newSettings.wideVaneValid = true;
-    }else{
-      msgOk = false;
-      newSettings.wideVaneValid = false;
-    }    
+	
+	
+	
     if (root.containsKey("temp") && root["temp"].is<int>()){
       newSettings.tempDegC = root["temp"];
       newSettings.tempDegCValid = true;
     }else{
-      msgOk = false;
+      jsonOk = false;
       newSettings.tempDegCValid = false;
     }
 
-
     byte buf[128];
-    int len2 = ml.getTxSettingsPacket(buf, newSettings);
-    sendBytes (buf,len2);
+    int len = ml.getTxSettingsPacket(buf, newSettings);
+    sendBytes (buf,len);
 
     return msgOk?0:-1;
 }
