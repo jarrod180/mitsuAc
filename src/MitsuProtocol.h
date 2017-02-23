@@ -19,17 +19,24 @@
 */
 #ifdef ESP8266
 #include <functional>
+#endif
+
+// Debug
+#define DEBUG_ON
+#define DEBUG_PACKETS
+//#define DEBUG_CALLS
+
+#ifdef DEBUG_ON
 #define DEBUG_CB std::function<void(const char* msg)> debugCb
 #else
 #define DEBUG_CB void (*debugCb)();
 #endif
 
-#define DEBUG 0
 
 class MitsuProtocol
 {
 public:
-    #if DEBUG
+    #ifdef DEBUG_ON
     void setDebugCb(DEBUG_CB);
     #endif
     
@@ -89,7 +96,9 @@ public:
     };
     const char* wideVane_tToString (wideVane_t wideVane);
     void wideVane_tFromString (const char* wideVaneStr, wideVane_t* wideVane, bool success);
+    
 
+    // Main settings type
     struct settings_t {
        power_t power;
        bool powerValid;
@@ -115,6 +124,10 @@ public:
     struct roomTemp_t {
        int roomTemp;
        bool roomTempValid;
+       double tempSens1Raw;
+       bool tempSens1RawValid;
+       double tempSens2Raw;
+       bool tempSens2RawValid;       
     };    
     
     enum dataKind_t {
@@ -213,7 +226,7 @@ public:
     int getTxInfoPacket (byte* buffer, info_t kind);
 
 private:
-    #if DEBUG
+    #ifdef DEBUG_ON
     DEBUG_CB;
     void log (const char* msg);
     #endif
@@ -235,6 +248,11 @@ private:
     static inline int byteToTemp(byte b) {
         return (b >= 0x00 && b <= 0x0f)?int(31 - b):0;
     }
+
+    static inline double byteToTempRaw(byte b){
+        return ((static_cast<double>(b) - static_cast<double>(128))/static_cast<double>(2));
+    }
+    
     
     // Calculate the checksum for given bytes.
     static byte calculateChecksum(byte* data, int len);
@@ -252,25 +270,27 @@ private:
     static const int LENGTH_POS   = 4;
     
     // Data Packet
-    static const int DATA_PACKET_LEN    = 22;
-    static const int DATA_KIND_POS      = 5;
-    static const int DATA_CONTROL       = 6;
-    static const int DATA_7             = 7;
-    static const int DATA_POWER_POS     = 8;
-    static const int DATA_ROOM_TEMP_POS = 8;
-    static const int DATA_MODE_POS      = 9;
-    static const int DATA_TEMP_POS      = 10;
-    static const int DATA_FAN_POS       = 11;
-    static const int DATA_VANE_POS      = 12;
-    static const int DATA_13            = 13;
-    static const int DATA_14            = 14;
-    static const int DATA_WIDEVANE_POS  = 15;
-    static const int DATA_16            = 16;
-    static const int DATA_17            = 17;
-    static const int DATA_18            = 18;
-    static const int DATA_19            = 19;
-    static const int DATA_20            = 20;
-    static const int DATA_CHECKSUM_POS  = 21;
+    static const int DATA_PACKET_LEN     = 22;
+    static const int DATA_KIND_POS       = 5;
+    static const int DATA_CONTROL        = 6;
+    static const int DATA_7              = 7;
+    static const int DATA_POWER_POS      = 8;
+    static const int DATA_ROOM_TEMP_POS  = 8;
+    static const int DATA_MODE_POS       = 9;
+    static const int DATA_TEMP_POS       = 10;
+    static const int DATA_FAN_POS        = 11;
+    static const int DATA_TEMP_SENS1_RAW = 11;
+    static const int DATA_VANE_POS       = 12;
+    static const int DATA_TEMP_SENS2_RAW = 12;
+    static const int DATA_13             = 13;
+    static const int DATA_14             = 14;
+    static const int DATA_WIDEVANE_POS   = 15;
+    static const int DATA_16             = 16;
+    static const int DATA_17             = 17;
+    static const int DATA_18             = 18;
+    static const int DATA_19             = 19;
+    static const int DATA_20             = 20;
+    static const int DATA_CHECKSUM_POS   = 21;
     
     // Connect Packet 
     static const int CONNECT_PACKET_LEN   = 8;

@@ -20,8 +20,11 @@
 #include <MitsuAc.h>
 
 /* DEBUG */
-#define DEBUG 0
-#if DEBUG
+#define DEBUG_ON
+#define DEBUG_PACKETS
+//#define DEBUG_CALLS
+
+#ifdef DEBUG_ON
 void MitsuProtocol::log (const char* msg){
     if (debugCb){
         debugCb (msg);
@@ -37,7 +40,7 @@ MitsuProtocol::MitsuProtocol() {
 }
 
 int MitsuProtocol::getTxSettingsPacket (byte* buffer, settings_t settings){
-    #if (DEBUG > 0)
+    #ifdef DEBUG_ON
     log("MitsuProtocol.getTxSettingsPacket()");
     #endif    
     
@@ -85,7 +88,7 @@ int MitsuProtocol::getTxSettingsPacket (byte* buffer, settings_t settings){
 }
 
 int MitsuProtocol::getTxConnectPacket (byte* buffer){
-    #if (DEBUG > 0)
+    #ifdef DEBUG_CALLS
     log("MitsuProtocol.getTxConnectPacket()");
     #endif    
     
@@ -110,7 +113,7 @@ int MitsuProtocol::getTxConnectPacket (byte* buffer){
 
 
 int MitsuProtocol::getTxInfoPacket (byte* buffer, info_t kind){
-    #if (DEBUG > 0)
+    #ifdef DEBUG_CALLS
     log("MitsuProtocol.getTxInfoPacket()");
     #endif    
     
@@ -256,23 +259,23 @@ MitsuProtocol::packetBuilder::packetBuilder(MitsuProtocol* parent) {
     for (int i = 0; i < MAX_SIZE; i++){
         buffer[i] = 0;
     }
-};    
+}
 
 int MitsuProtocol::packetBuilder::addByte(byte b){
-    #if (DEBUG > 2)
+    #ifdef DEBUG_BYTES
     parent->log (String(String("Rx: 0x") + String(b,HEX)).c_str());
     #endif
       
     // Too many bytes, reset
     if (cursor >= MAX_SIZE){
-        #if (DEBUG > 0)
+        #ifdef DEBUG_CALLS
         parent->log("packetBuilder.addByte: cursor reset");
         #endif
         reset();
     }
 
     if ((cursor == 0 && b == HEADER_1) || cursor > 0){
-        #if (DEBUG > 1)
+        #ifdef DEBUG_CALLS
         if (cursor==0){
             parent->log("packetBuilder.addByte: packet start");
         }
@@ -307,13 +310,16 @@ bool MitsuProtocol::packetBuilder::valid(){
 }
 
 MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
-    #if (DEBUG > 1)
+    #ifdef DEBUG_CALLS
     parent->log("packetBuilder.getData()");
-  
-    String dbg("Rx Pkt: ");
+    #endif
+    
+    #ifdef DEBUG_PACKETS
+    String dbg("Rx Pkt: [");
     for(int i = 0; i < 22; i++) {
         dbg = dbg + " 0x";
         dbg = dbg + String(buffer[i],HEX);
+        if (i==4){dbg = dbg + "]";};
     }
     parent->log(dbg.c_str());
     #endif
@@ -324,7 +330,7 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
     msg.msgKindValid = false;
     
     if (!valid()) {
-        #if (DEBUG > 0)
+        #ifdef DEBUG_CALLS
         parent->log("packetBuilder.getData: invalid");
         #endif
         return msg;
@@ -337,7 +343,7 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
             break; // We don't care about these right now
             
         case msgKind_t::rxCurrentSettings:
-            #if (DEBUG > 0)
+            #ifdef DEBUG_CALLS
             parent->log("packetBuilder.getData: rxCurrentSettings");
             parent->log(String(buffer[MSG_TYPE_POS],HEX).c_str());
             #endif            
@@ -356,16 +362,18 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
                     break;
                 case roomTemp:
                     msg.data.rxCurrentSettingsData.data.roomTemp.roomTemp = byteToRoomTemp(buffer[DATA_ROOM_TEMP_POS]);
+                    msg.data.rxCurrentSettingsData.data.roomTemp.tempSens1Raw = byteToTempRaw(buffer[DATA_TEMP_SENS1_RAW]);
+                    msg.data.rxCurrentSettingsData.data.roomTemp.tempSens2Raw = byteToTempRaw(buffer[DATA_TEMP_SENS2_RAW]);
                     break;
                 default:
-                    #if (DEBUG > 0)
+                    #ifdef DEBUG_CALLS
                     parent->log(String(String("packetBuilder.getData: unrecognised rx settings kind:") + String(buffer[MSG_TYPE_POS],HEX)).c_str());
                     #endif    
                     break;
             }
             break;
         case msgKind_t::rxStatusOk:
-            #if (DEBUG > 0)
+            #ifdef DEBUG_CALLS
             parent->log("packetBuilder.getData: rxStatusOk");
             parent->log(String(buffer[MSG_TYPE_POS],HEX).c_str());
             #endif        
@@ -373,7 +381,7 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
             msg.msgKindValid = true;
             break;
         case msgKind_t::rxStatusNok:
-            #if (DEBUG > 0)
+            #ifdef DEBUG_CALLS
             parent->log("packetBuilder.getData: rxStatusNok");
             parent->log(String(buffer[MSG_TYPE_POS],HEX).c_str());
             #endif        
@@ -381,7 +389,7 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
             msg.msgKindValid = true;
             break;
         default:
-            #if (DEBUG > 0)
+            #ifdef DEBUG_CALLS
             parent->log("packetBuilder.getData: unrecognised message type:");
             parent->log(String(buffer[MSG_TYPE_POS],HEX).c_str());
             #endif        
@@ -391,7 +399,7 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
 }
 
 void MitsuProtocol::packetBuilder::reset(){
-    #if (DEBUG > 2)
+    #ifdef DEBUG_CALLS
     parent->log("packetBuilder.getData: reset()");
     #endif
     cursor = 0;

@@ -21,8 +21,11 @@
 #include <ArduinoJson.h>
 
 /* DEBUG */
-#define DEBUG 0
-#if DEBUG
+#define DEBUG_ON
+#define DEBUG_PACKETS
+//#define DEBUG_CALLS
+
+#ifdef DEBUG_ON
 void MitsuAc::log (const char* msg){
     if (debugCb){
         debugCb (msg);
@@ -54,7 +57,7 @@ void MitsuAc::connect() {
 }
 
 void MitsuAc::getSettingsJson(char* settings, size_t len){
-   char buf[3];
+   char buf[16];
    strcpy(settings, "{\"power\":\""); 
    strcat(settings, ml.power_tToString(lastSettings.power));
    strcat(settings, "\",\"mode\":\"");
@@ -71,6 +74,12 @@ void MitsuAc::getSettingsJson(char* settings, size_t len){
    strcat(settings, ",\"roomtemp\":");
    itoa(lastRoomTemp.roomTemp,&buf[0],10);
    strcat(settings, buf);
+//   strcat(settings, ",\"tempsens1\":");
+//   dtostrf(lastRoomTemp.tempSens1Raw, 3, 1, &buf[0]);
+//   strcat(settings, buf);
+//   strcat(settings, ",\"tempsens2\":");
+//   dtostrf(lastRoomTemp.tempSens2Raw, 3, 1, &buf[0]);
+//   strcat(settings, buf);
    strcat(settings, "}");
    len = strlen(settings);
 }
@@ -165,20 +174,23 @@ void MitsuAc::monitor() {
 
 // Private Methods
 void MitsuAc::sendBytes(byte* buf, int len){
-    #if DEBUG > 1
+    #ifdef DEBUG_CALLS
     log ("MitsuAc::sendBytes(), len:");
     log (String(len).c_str());
-    String msg("Tx Pkt: ");
+    #endif
+    #ifdef DEBUG_PACKETS
+    String msg("Tx Pkt: [");
     for(int i = 0; i < len; i++) {
         msg = msg + " 0x";
         msg = msg + String(buf[i],HEX);
+        if (i==4){msg+="]";}
     }
     log(msg.c_str());
     #endif
 
     if (_HardSerial){
         for(int i = 0; i < len; i++) {
-          #if DEBUG > 2
+          #ifdef DEBUG_BYTES
           log (String(String("Tx: 0x") + String(buf[i],HEX)).c_str());
           #endif
           _HardSerial->write((uint8_t)buf[i]);

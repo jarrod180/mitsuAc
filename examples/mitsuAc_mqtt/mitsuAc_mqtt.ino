@@ -15,11 +15,11 @@ static const char* mqttPass="mqtt";
 static const char* ssid = "xxx";
 static const char* password="xxx";
 
-/* DEBUG
+ //DEBUG
 void debug(const char* msg){
   mqttClient.publish(mqttStateTopic, msg, false);
 }
-*/
+
 
 void mqttConnect() {
   char strOnline[64],strOffline[64];
@@ -60,10 +60,10 @@ void setup() {
   // Set up the MQTT client
   mqttClient.setServer(mqttServer, 1883);
   mqttClient.setCallback(mqttCallback);
-  //ac.setDebugCb(&debug); //DEBUG
+  ac.setDebugCb(&debug); //DEBUG
 }
 
-char lastSettings[128];
+char lastSettings[512];
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED){
@@ -76,7 +76,7 @@ void loop() {
 
   ac.monitor();
 
-  char newSettings[128];
+  char newSettings[512];
   size_t len=0;
   ac.getSettingsJson(newSettings,len);
   

@@ -17,13 +17,15 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#ifndef __MitsuAc_H__
+//#ifndef __MitsuAc_H__
 #define __MitsuAc_H__
 #include <HardwareSerial.h>
 #include "Arduino.h"
 #include "MitsuProtocol.h"
 
-#define DEBUG 0
+#define DEBUG_ON
+#define DEBUG_PACKETS
+//#define DEBUG_CALLS
 
 class MitsuAc
 {
@@ -43,12 +45,12 @@ class MitsuAc
     // Put immediately the requested settings
     int putSettingsJson(const char* jsonSettings, size_t len);
 
-    #if DEBUG
+    #ifdef DEBUG_ON
     void setDebugCb(DEBUG_CB);
     #endif
 
   private:
-    #if DEBUG
+    #ifdef DEBUG_ON
     void log (const char* msg);
     DEBUG_CB;
     #endif
@@ -69,7 +71,7 @@ class MitsuAc
                                               MitsuProtocol::wideVane_t::wideVaneCenter,false,
                                               0,false};    
     unsigned long lastSettingsTime = 0;
-    MitsuProtocol::roomTemp_t lastRoomTemp = {0,false};
+    MitsuProtocol::roomTemp_t lastRoomTemp = {0,false,0.0,false,0.0,false};
     unsigned long lastRoomTempTime = 0;
     MitsuProtocol::info_t lastInfo = MitsuProtocol::roomTemp;
     unsigned long lastInfoRequestTime = 0;
@@ -78,4 +80,4 @@ class MitsuAc
     void sendBytes(byte* buf, int len);
     HardwareSerial * _HardSerial;
 };
-#endif
+//endif
