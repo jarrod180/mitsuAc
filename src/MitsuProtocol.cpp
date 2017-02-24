@@ -17,12 +17,9 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include <MitsuAc.h>
-
-/* DEBUG */
-#define DEBUG_ON
-#define DEBUG_PACKETS
-//#define DEBUG_CALLS
+#include <string.h>
+#include <stdlib_noniso.h>
+#include "MitsuProtocol.h"
 
 #ifdef DEBUG_ON
 void MitsuProtocol::log (const char* msg){
@@ -39,9 +36,9 @@ void MitsuProtocol::setDebugCb(DEBUG_CB){
 MitsuProtocol::MitsuProtocol() {
 }
 
-int MitsuProtocol::getTxSettingsPacket (byte* buffer, settings_t settings){
-    #ifdef DEBUG_ON
-    log("MitsuProtocol.getTxSettingsPacket()");
+int MitsuProtocol::getTxSettingsPacket (uint8_t* buffer, settings_t settings){
+    #ifdef DEBUG_CALLS
+    log("MitsuProtocol::getTxSettingsPacket");
     #endif    
     
     // Zeroize the packet
@@ -50,35 +47,35 @@ int MitsuProtocol::getTxSettingsPacket (byte* buffer, settings_t settings){
     }
     
     buffer[HEADER_1_POS]      = HEADER_1;
-    buffer[MSG_TYPE_POS]      = static_cast<byte>(msgKind_t::txSettings);
+    buffer[MSG_TYPE_POS]      = static_cast<uint8_t>(msgKind_t::txSettings);
     buffer[HEADER_3_POS]      = HEADER_3;
     buffer[HEADER_4_POS]      = HEADER_4;
     buffer[LENGTH_POS]        = DATA_PACKET_LEN - CHECKSUM_LEN - HEADER_LEN;
-    buffer[DATA_KIND_POS]     = static_cast<byte>(dataKind_t::settingsRequest);
+    buffer[DATA_KIND_POS]     = static_cast<uint8_t>(dataKind_t::settingsRequest);
 
     if (settings.powerValid){
-        buffer[DATA_POWER_POS] = static_cast<byte>(settings.power);
-        buffer[DATA_CONTROL] += static_cast<byte>(control_t::power);
+        buffer[DATA_POWER_POS] = static_cast<uint8_t>(settings.power);
+        buffer[DATA_CONTROL] += static_cast<uint8_t>(control_t::power);
     }
     if (settings.modeValid){
-        buffer[DATA_MODE_POS] = static_cast<byte>(settings.mode);
-        buffer[DATA_CONTROL] += static_cast<byte>(control_t::mode);
+        buffer[DATA_MODE_POS] = static_cast<uint8_t>(settings.mode);
+        buffer[DATA_CONTROL] += static_cast<uint8_t>(control_t::mode);
     }
     if (settings.tempDegCValid){
         buffer[DATA_TEMP_POS] = tempToByte(settings.tempDegC);
-        buffer[DATA_CONTROL] += static_cast<byte>(control_t::temp);
+        buffer[DATA_CONTROL] += static_cast<uint8_t>(control_t::temp);
     }
     if (settings.fanValid){
-        buffer[DATA_FAN_POS] = static_cast<byte>(settings.fan);
-        buffer[DATA_CONTROL] += static_cast<byte>(control_t::fan);
+        buffer[DATA_FAN_POS] = static_cast<uint8_t>(settings.fan);
+        buffer[DATA_CONTROL] += static_cast<uint8_t>(control_t::fan);
     }
     if (settings.vaneValid){
-        buffer[DATA_VANE_POS] = static_cast<byte>(settings.vane);
-        buffer[DATA_CONTROL] += static_cast<byte>(control_t::vane);
+        buffer[DATA_VANE_POS] = static_cast<uint8_t>(settings.vane);
+        buffer[DATA_CONTROL] += static_cast<uint8_t>(control_t::vane);
     }
     if (settings.wideVaneValid){
-        buffer[DATA_WIDEVANE_POS] = static_cast<byte>(settings.wideVane);
-        buffer[DATA_CONTROL] += static_cast<byte>(control_t::wideVane);
+        buffer[DATA_WIDEVANE_POS] = static_cast<uint8_t>(settings.wideVane);
+        buffer[DATA_CONTROL] += static_cast<uint8_t>(control_t::wideVane);
     }
 
     // Checksum
@@ -87,9 +84,9 @@ int MitsuProtocol::getTxSettingsPacket (byte* buffer, settings_t settings){
     return DATA_PACKET_LEN;
 }
 
-int MitsuProtocol::getTxConnectPacket (byte* buffer){
+int MitsuProtocol::getTxConnectPacket (uint8_t* buffer){
     #ifdef DEBUG_CALLS
-    log("MitsuProtocol.getTxConnectPacket()");
+    log("MitsuProtocol::getTxConnectPacket");
     #endif    
     
     // Zeroize the packet
@@ -98,7 +95,7 @@ int MitsuProtocol::getTxConnectPacket (byte* buffer){
     }    
     
     buffer[HEADER_1_POS]  = HEADER_1;
-    buffer[MSG_TYPE_POS]  = static_cast<byte>(msgKind_t::txConnect);
+    buffer[MSG_TYPE_POS]  = static_cast<uint8_t>(msgKind_t::txConnect);
     buffer[HEADER_3_POS]  = HEADER_3;
     buffer[HEADER_4_POS]  = HEADER_4;
     buffer[LENGTH_POS]    = CONNECT_PACKET_LEN - CHECKSUM_LEN - HEADER_LEN;
@@ -112,9 +109,9 @@ int MitsuProtocol::getTxConnectPacket (byte* buffer){
 }
 
 
-int MitsuProtocol::getTxInfoPacket (byte* buffer, info_t kind){
+int MitsuProtocol::getTxInfoPacket (uint8_t* buffer, info_t kind){
     #ifdef DEBUG_CALLS
-    log("MitsuProtocol.getTxInfoPacket()");
+    log("MitsuProtocol::getTxInfoPacket");
     #endif    
     
     // Zeroize the packet
@@ -123,11 +120,11 @@ int MitsuProtocol::getTxInfoPacket (byte* buffer, info_t kind){
     }    
     
     buffer[HEADER_1_POS]  = HEADER_1;
-    buffer[MSG_TYPE_POS]  = static_cast<byte>(msgKind_t::txInfoRequest);
+    buffer[MSG_TYPE_POS]  = static_cast<uint8_t>(msgKind_t::txInfoRequest);
     buffer[HEADER_3_POS]  = HEADER_3;
     buffer[HEADER_4_POS]  = HEADER_4;
     buffer[LENGTH_POS]    = INFO_PACKET_LEN - CHECKSUM_LEN - HEADER_LEN;    
-    buffer[INFO_KIND]     = static_cast<byte>(kind);
+    buffer[INFO_KIND]     = static_cast<uint8_t>(kind);
     // Checksum
     buffer[INFO_CHECKSUM_POS] = MitsuProtocol::calculateChecksum(buffer, INFO_PACKET_LEN - 1);
 
@@ -135,8 +132,8 @@ int MitsuProtocol::getTxInfoPacket (byte* buffer, info_t kind){
 }
 
 
-byte MitsuProtocol::calculateChecksum(byte* data, int len) {
-    byte sum = 0;
+uint8_t MitsuProtocol::calculateChecksum(uint8_t* data, int len) {
+    uint8_t sum = 0;
     for (int i = 0; i < len; i++) {
         sum += data[i];
     }
@@ -261,29 +258,33 @@ MitsuProtocol::packetBuilder::packetBuilder(MitsuProtocol* parent) {
     }
 }
 
-int MitsuProtocol::packetBuilder::addByte(byte b){
+int MitsuProtocol::packetBuilder::adduint8_t(uint8_t b){
     #ifdef DEBUG_BYTES
-    parent->log (String(String("Rx: 0x") + String(b,HEX)).c_str());
+    char dmsg[16];
+    strcpy (dmsg,"Rx: 0x");
+    char dbuf[8];
+    strcat(dmsg, itoa(b,dbuf,16));
+    parent->log(dmsg);    
     #endif
       
-    // Too many bytes, reset
+    // Too many uint8_ts, reset
     if (cursor >= MAX_SIZE){
-        #ifdef DEBUG_CALLS
-        parent->log("packetBuilder.addByte: cursor reset");
+        #ifdef DEBUG_BYTES
+        parent->log("MitsuProtocol::packetBuilder.adduint8_t: cursor reset");        
         #endif
         reset();
     }
 
     if ((cursor == 0 && b == HEADER_1) || cursor > 0){
-        #ifdef DEBUG_CALLS
+        #ifdef DEBUG_BYTES
         if (cursor==0){
-            parent->log("packetBuilder.addByte: packet start");
+            parent->log("MitsuProtocol::packetBuilder.adduint8_t: packet start");
         }
         #endif
         
         buffer[cursor] = b;
         cursor++;
-        return 0; // OK, Byte accepted
+        return 0; // OK, uint8_t accepted
     }else{
         return 1; // OK, but ignored - waiting for packet start
     }
@@ -303,8 +304,8 @@ bool MitsuProtocol::packetBuilder::valid(){
                         buffer[3] == MitsuProtocol::HEADER_4);
                         
     int checksumPos = MitsuProtocol::HEADER_LEN + buffer[MitsuProtocol::LENGTH_POS];
-    int numBytesInMsg = MitsuProtocol::HEADER_LEN + buffer[MitsuProtocol::LENGTH_POS];
-    bool checksumValid = (buffer[checksumPos] == calculateChecksum (buffer,numBytesInMsg));
+    int numuint8_tsInMsg = MitsuProtocol::HEADER_LEN + buffer[MitsuProtocol::LENGTH_POS];
+    bool checksumValid = (buffer[checksumPos] == calculateChecksum (buffer,numuint8_tsInMsg));
 
     return (headerValid && checksumValid);
 }
@@ -315,13 +316,17 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
     #endif
     
     #ifdef DEBUG_PACKETS
-    String dbg("Rx Pkt: [");
+    char dmsg[256];
+    strcpy (dmsg,"Rx Pkt: [");
     for(int i = 0; i < 22; i++) {
-        dbg = dbg + " 0x";
-        dbg = dbg + String(buffer[i],HEX);
-        if (i==4){dbg = dbg + "]";};
+        strcat(dmsg,"0x");
+        char dbuf[8];
+        if (buffer[i]<=0x0f){strcat(dmsg,"0");}
+        strcat(dmsg, itoa(buffer[i],dbuf,16));
+        if (i==4){strcat(dmsg,"]");};
+        strcat(dmsg," ");
     }
-    parent->log(dbg.c_str());
+    parent->log(dmsg);
     #endif
 
         
@@ -345,7 +350,6 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
         case msgKind_t::rxCurrentSettings:
             #ifdef DEBUG_CALLS
             parent->log("packetBuilder.getData: rxCurrentSettings");
-            parent->log(String(buffer[MSG_TYPE_POS],HEX).c_str());
             #endif            
             msg.kind = MitsuProtocol::msgKind_t::rxCurrentSettings;
             msg.msgKindValid = true;
@@ -367,32 +371,46 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
                     break;
                 default:
                     #ifdef DEBUG_CALLS
-                    parent->log(String(String("packetBuilder.getData: unrecognised rx settings kind:") + String(buffer[MSG_TYPE_POS],HEX)).c_str());
+                    char dmsg[128];
+                    char dbuf[8];
+                    strcpy(dmsg,"packetBuilder.getData: unrecognised rx settings kind:");
+                    strcat(dmsg,itoa(buffer[MSG_TYPE_POS],dbuf,16));
+                    parent->log(dmsg);
                     #endif    
                     break;
             }
             break;
         case msgKind_t::rxStatusOk:
             #ifdef DEBUG_CALLS
-            parent->log("packetBuilder.getData: rxStatusOk");
-            parent->log(String(buffer[MSG_TYPE_POS],HEX).c_str());
+            char dmsg[128];
+            char dbuf[8];
+            strcpy(dmsg,"packetBuilder.getData: rxStatusOk");
+            strcat(dmsg,itoa(buffer[MSG_TYPE_POS],dbuf,16));
+            parent->log(dmsg);            
             #endif        
             msg.kind = MitsuProtocol::msgKind_t::rxStatusOk;
             msg.msgKindValid = true;
             break;
         case msgKind_t::rxStatusNok:
             #ifdef DEBUG_CALLS
-            parent->log("packetBuilder.getData: rxStatusNok");
-            parent->log(String(buffer[MSG_TYPE_POS],HEX).c_str());
-            #endif        
+            char dmsg2[128];
+            char dbuf2[8];
+            strcpy(dmsg2,"packetBuilder.getData: rxStatusNok");
+            strcat(dmsg2,itoa(buffer[MSG_TYPE_POS],dbuf2,16));
+            parent->log(dmsg2);            
+            #endif
+                 
             msg.kind = MitsuProtocol::msgKind_t::rxStatusNok;
             msg.msgKindValid = true;
             break;
-        default:
+        default:       
             #ifdef DEBUG_CALLS
-            parent->log("packetBuilder.getData: unrecognised message type:");
-            parent->log(String(buffer[MSG_TYPE_POS],HEX).c_str());
-            #endif        
+            char dmsg3[128];
+            char dbuf3[8];
+            strcpy(dmsg3,"packetBuilder.getData: unrecognised message type:");
+            strcat(dmsg3,itoa(buffer[MSG_TYPE_POS],dbuf3,16));
+            parent->log(dmsg3);            
+            #endif
             break; // Unrecognised message
     }
     return msg;

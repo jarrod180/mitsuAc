@@ -13,8 +13,8 @@ static const char* mqttStateTopic="home/bed3ac";
 static const char* mqttSetTopic="home/bed3ac/set";
 static const char* mqttUser="mqtt";
 static const char* mqttPass="mqtt";
-static const char* ssid = "xxx";
-static const char* password="xxx";
+static const char* ssid = "xxxx";
+static const char* password="xxxx";
 
  //DEBUG
 void debug(const char* msg){

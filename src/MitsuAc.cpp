@@ -17,13 +17,9 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include <MitsuAc.h>
+#include "MitsuAc.h"
 #include <ArduinoJson.h>
 
-/* DEBUG */
-#define DEBUG_ON
-#define DEBUG_PACKETS
-//#define DEBUG_CALLS
 
 #ifdef DEBUG_ON
 void MitsuAc::log (const char* msg){
@@ -49,15 +45,15 @@ void MitsuAc::initialize(){
 }
 
 void MitsuAc::sendRequestInfo(MitsuProtocol::info_t kind){
-    byte buf[32] = {0};
+    uint8_t buf[32] = {0};
     int len = ml.getTxInfoPacket (buf, kind);
-    sendBytes (buf, len);
+    sendData (buf, len);
 }
 
 void MitsuAc::sendInit() {
-  byte buf[16] = {0};
+  uint8_t buf[16] = {0};
   int len = ml.getTxConnectPacket (buf);
-  sendBytes(buf, len);
+  sendData(buf, len);
   lastTxInitTime = millis();
 }
 
@@ -143,9 +139,9 @@ int MitsuAc::putSettingsJson(const char* jsonSettings){
       newSettings.tempDegCValid = false;
     }
 
-    byte buf[32];
+    uint8_t buf[32];
     int len = ml.getTxSettingsPacket(buf, newSettings);
-    sendBytes (buf,len);
+    sendData (buf,len);
 
     return msgOk?0:-1;
 }
@@ -160,7 +156,7 @@ void MitsuAc::monitor() {
 
   // Service the serial port
   while (_HardSerial->available() > 0){
-    pb.addByte(_HardSerial->read());
+    pb.adduint8_t(_HardSerial->read());
     if (pb.complete() && pb.valid()) {
         MitsuProtocol::msg_t msg = pb.getData();
         if (msg.msgKindValid){
@@ -183,25 +179,32 @@ void MitsuAc::monitor() {
 }
 
 // Private Methods
-void MitsuAc::sendBytes(byte* buf, int len){
+void MitsuAc::sendData(uint8_t* buf, int len){
     #ifdef DEBUG_CALLS
-    log ("MitsuAc::sendBytes(), len:");
-    log (String(len).c_str());
+    log ("MitsuAc::sendData()");
     #endif
     #ifdef DEBUG_PACKETS
-    String msg("Tx Pkt: [");
+    char dmsg[256];
+    strcpy (dmsg,"Tx Pkt: [");
     for(int i = 0; i < len; i++) {
-        msg = msg + " 0x";
-        msg = msg + String(buf[i],HEX);
-        if (i==4){msg+="]";}
+        strcat(dmsg,"0x");
+        char dbuf[8];
+        if (buf[i]<=0x0f){strcat(dmsg,"0");}
+        strcat(dmsg, itoa(buf[i],dbuf,16));
+        if (i==4){strcat(dmsg,"]");};
+        strcat(dmsg," ");
     }
-    log(msg.c_str());
+    log(dmsg);
     #endif
 
     if (_HardSerial){
         for(int i = 0; i < len; i++) {
           #ifdef DEBUG_BYTES
-          log (String(String("Tx: 0x") + String(buf[i],HEX)).c_str());
+          char dmsg[16];
+          strcpy (dmsg,"Tx: 0x");
+          char dbuf[8];
+          strcat(dmsg, itoa(buf[i],dbuf,16));
+          log(dmsg);    
           #endif
           _HardSerial->write((uint8_t)buf[i]);
         }

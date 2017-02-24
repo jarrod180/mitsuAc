@@ -23,10 +23,6 @@
 #include "Arduino.h"
 #include "MitsuProtocol.h"
 
-#define DEBUG_ON
-#define DEBUG_PACKETS
-//#define DEBUG_CALLS
-
 class MitsuAc
 {
   public:
@@ -63,7 +59,7 @@ class MitsuAc
     MitsuProtocol::packetBuilder pb = MitsuProtocol::packetBuilder(&ml);
     
     // Private Methods
-	void sendInit();
+	 void sendInit();
     void sendRequestInfo(MitsuProtocol::info_t kind);
     void storeRxSettings(MitsuProtocol::rxSettings_t settings);
     
@@ -73,17 +69,17 @@ class MitsuAc
                                               MitsuProtocol::fan_t::fan1,false,
                                               MitsuProtocol::vane_t::vane1,false,
                                               MitsuProtocol::wideVane_t::wideVaneCenter,false,
-                                              0,false};    
-    unsigned long lastSettingsTime = 0;
+                                              0,false};
     MitsuProtocol::roomTemp_t lastRoomTemp = {0,false,0.0,false,0.0,false};
-    unsigned long lastRoomTempTime = 0;
     MitsuProtocol::info_t lastInfo = MitsuProtocol::roomTemp;
-    unsigned long lastInfoRequestTime = 0;
     
+    unsigned long lastSettingsTime = 0;
+    unsigned long lastInfoRequestTime = 0;
+    unsigned long lastRoomTempTime = 0;
     unsigned long lastTxInitTime = 0;
 
     // Serial object and methods
-    void sendBytes(byte* buf, int len);
+    void sendData(uint8_t* buf, int len);
     HardwareSerial * _HardSerial;
 };
 //endif

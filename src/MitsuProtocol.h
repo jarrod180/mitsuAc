@@ -25,6 +25,8 @@
 #define DEBUG_ON
 #define DEBUG_PACKETS
 //#define DEBUG_CALLS
+//#define DEBUG_BYTES
+
 
 #ifdef DEBUG_ON
 #define DEBUG_CB std::function<void(const char* msg)> debugCb
@@ -40,7 +42,7 @@ public:
     void setDebugCb(DEBUG_CB);
     #endif
     
-    enum class power_t : byte
+    enum class power_t : uint8_t
     {
         powerOff = 0x00,
         powerOn  = 0x01
@@ -48,7 +50,7 @@ public:
     const char* power_tToString (power_t power);
     void power_tFromString (const char* powerStr, power_t* power, bool success);
     
-    enum class mode_t : byte
+    enum class mode_t : uint8_t
     {
         modeHeat = 0x01,
         modeDry  = 0x02,
@@ -59,7 +61,7 @@ public:
     const char* mode_tToString (mode_t mode);
     void mode_tFromString (const char* modeStr, mode_t* mode, bool success);
     
-    enum class fan_t : byte 
+    enum class fan_t : uint8_t 
     {
         fanAuto  = 0x00,
         fanQuiet = 0x01,
@@ -71,7 +73,7 @@ public:
     const char* fan_tToString (fan_t fan);
     void fan_tFromString (const char* fanStr, fan_t* fan, bool success);
     
-    enum class vane_t : byte
+    enum class vane_t : uint8_t
     {
         vaneAuto  = 0x00,
         vane1     = 0x01,
@@ -84,7 +86,7 @@ public:
     const char* vane_tToString (vane_t vane); 
     void vane_tFromString (const char* vaneStr, vane_t* vane, bool success); 
     
-    enum class wideVane_t : byte 
+    enum class wideVane_t : uint8_t 
     {
         wideVaneFullLeft     = 0x01,
         wideVaneHalfLeft     = 0x02,
@@ -198,7 +200,7 @@ public:
     
     /* 
     packetBuilder Class -
-    Add one byte at a time and discover when a valid
+    Add one uint8_t at a time and discover when a valid
     packet is detected and then get the data.
     */
     class packetBuilder
@@ -207,7 +209,7 @@ public:
         
         public:
             packetBuilder(MitsuProtocol* parent);
-            int addByte(byte b);
+            int adduint8_t(uint8_t b);
             bool complete();
             bool valid();
             MitsuProtocol::msg_t getData();
@@ -216,14 +218,14 @@ public:
         private:
             MitsuProtocol* parent;
             static const int MAX_SIZE=32;
-            byte buffer[MAX_SIZE];
+            uint8_t buffer[MAX_SIZE];
             int cursor;
     };    
     
     // Return different kinds of tx packet
-    int getTxSettingsPacket (byte* buffer, settings_t settings);
-    int getTxConnectPacket (byte* buffer);
-    int getTxInfoPacket (byte* buffer, info_t kind);
+    int getTxSettingsPacket (uint8_t* buffer, settings_t settings);
+    int getTxConnectPacket (uint8_t* buffer);
+    int getTxInfoPacket (uint8_t* buffer, info_t kind);
 
 private:
     #ifdef DEBUG_ON
@@ -232,30 +234,30 @@ private:
     #endif
     
     /* 
-    The temperatures byte values are a constant offset from the
+    The temperatures uint8_t values are a constant offset from the
     degrees Celsius value. These routines check the range and
-    convert encoded byte to/from degrees Celsius.
+    convert encoded uint8_t to/from degrees Celsius.
     */
-    static inline byte roomTempToByte(int roomTemp) {
-        return (roomTemp >= 10 && roomTemp <= 41)?byte(roomTemp - 10):0;
+    static inline uint8_t roomTempToByte(int roomTemp) {
+        return (roomTemp >= 10 && roomTemp <= 41)?uint8_t(roomTemp - 10):0;
     }
-    static inline int byteToRoomTemp(byte b) {
+    static inline int byteToRoomTemp(uint8_t b) {
         return (b >= 0x00 && b <= 0x1f)?int(b + 10):0;
     }
-    static inline byte tempToByte(int temp) {
-        return (temp <= 31 && temp >= 16)?byte(31-temp):0;
+    static inline uint8_t tempToByte(int temp) {
+        return (temp <= 31 && temp >= 16)?uint8_t(31-temp):0;
     }
-    static inline int byteToTemp(byte b) {
+    static inline int byteToTemp(uint8_t b) {
         return (b >= 0x00 && b <= 0x0f)?int(31 - b):0;
     }
 
-    static inline double byteToTempRaw(byte b){
+    static inline double byteToTempRaw(uint8_t b){
         return ((static_cast<double>(b) - static_cast<double>(128))/static_cast<double>(2));
     }
     
     
-    // Calculate the checksum for given bytes.
-    static byte calculateChecksum(byte* data, int len);
+    // Calculate the checksum for given uint8_ts.
+    static uint8_t calculateChecksum(uint8_t* data, int len);
     
     /* Constants */
     
