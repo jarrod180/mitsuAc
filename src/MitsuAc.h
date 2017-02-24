@@ -33,8 +33,8 @@ class MitsuAc
     // Constructor
     MitsuAc(HardwareSerial *serial);
        
-    // Connect to unit, call this once at initialization
-    void connect();
+    // Start the serial and trigger an init packet to the unit
+    void initialize();
     
     // Monitor the unit, call this regularly in the main loop
     void monitor();
@@ -54,13 +54,16 @@ class MitsuAc
     void log (const char* msg);
     DEBUG_CB;
     #endif
+	
+	const int INFO_REQ_INTERVAL = 500; //ms 
     
     // Protocol objects
     MitsuProtocol ml = MitsuProtocol();
     MitsuProtocol::packetBuilder pb = MitsuProtocol::packetBuilder(&ml);
     
     // Private Methods
-    void requestInfo(MitsuProtocol::info_t kind);
+	void sendInit();
+    void sendRequestInfo(MitsuProtocol::info_t kind);
     void storeRxSettings(MitsuProtocol::rxSettings_t settings);
     
     // Internal states

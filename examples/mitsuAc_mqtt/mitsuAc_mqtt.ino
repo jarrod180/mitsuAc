@@ -55,7 +55,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length){
 
 void setup() {
   // Connect to a/c unit
-  ac.connect();
+  ac.initialize();
   
   // Set up the MQTT client
   mqttClient.setServer(mqttServer, 1883);

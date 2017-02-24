@@ -42,15 +42,19 @@ MitsuAc::MitsuAc(HardwareSerial *serial) {
   _HardSerial = serial;
 }
 
-void MitsuAc::requestInfo(MitsuProtocol::info_t kind){
+void MitsuAc::initialize(){
+  _HardSerial->begin(2400, SERIAL_8E1);
+  delay(1000);
+  sendInit();
+}
+
+void MitsuAc::sendRequestInfo(MitsuProtocol::info_t kind){
     byte buf[32] = {0};
     int len = ml.getTxInfoPacket (buf, kind);
     sendBytes (buf, len);
 }
 
-void MitsuAc::connect() {
-  _HardSerial->begin(2400, SERIAL_8E1);
-  delay(1000);
+void MitsuAc::sendInit() {
   byte buf[16] = {0};
   int len = ml.getTxConnectPacket (buf);
   sendBytes(buf, len);
@@ -139,7 +143,6 @@ int MitsuAc::putSettingsJson(const char* jsonSettings, size_t len){
       newSettings.tempDegCValid = false;
     }
 
-
     byte buf[128];
     int len2 = ml.getTxSettingsPacket(buf, newSettings);
     sendBytes (buf,len2);
@@ -148,6 +151,12 @@ int MitsuAc::putSettingsJson(const char* jsonSettings, size_t len){
 }
 
 void MitsuAc::monitor() {
+  // If no infos are being received, trigger an init packet
+  if (millis() - lastSettingsTime > (INFO_REQ_INTERVAL * 2) && 
+      millis() - lastRoomTempTime > (INFO_REQ_INTERVAL * 2)) {
+     sendInit();
+  }
+
   // Service the serial port
   while (_HardSerial->available() > 0){
     pb.addByte(_HardSerial->read());
@@ -164,9 +173,9 @@ void MitsuAc::monitor() {
     }
   }
   // Request an Info if required
-  if (millis() > lastInfoRequestTime + 500){
+  if (millis() > lastInfoRequestTime + INFO_REQ_INTERVAL){
      MitsuProtocol::info_t thisInfo = lastInfo==MitsuProtocol::settings ? MitsuProtocol::roomTemp : MitsuProtocol::settings;
-     requestInfo(thisInfo);
+     sendRequestInfo(thisInfo);
      lastInfoRequestTime = millis();
      lastInfo = thisInfo;
   }
@@ -202,9 +211,11 @@ void MitsuAc::storeRxSettings(MitsuProtocol::rxSettings_t settings){
     switch (settings.kind){
         case MitsuProtocol::info_t::settings:
             lastSettings = settings.data.settings;
+			lastSettingsTime = millis();
             break;
         case MitsuProtocol::info_t::roomTemp :
             lastRoomTemp = settings.data.roomTemp;
+			lastRoomTempTime = millis();
             break;
     }
 }
