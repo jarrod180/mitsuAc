@@ -49,7 +49,8 @@ void wifiConnect(){
 
 void mqttCallback(char* topic, byte* payload, unsigned int length){
     char str[length];
-    strcpy(str,(char*) payload);
+    memcpy(str, payload, length);
+    str[length] = '\0';
     ac.putSettingsJson(str);
 };
 

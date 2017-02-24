@@ -91,8 +91,8 @@ int MitsuAc::putSettingsJson(const char* jsonSettings){
     bool success=false;
     bool msgOk = true;
     
-    if (root.containsKey("power") && root["power"].is<const char*>()){
-      ml.power_tFromString(root["power"],&newSettings.power,success);
+    if (root.containsKey("pwr") && root["pwr"].is<const char*>()){
+      ml.power_tFromString(root["pwr"],&newSettings.power,success);
       newSettings.powerValid = true;
       msgOk = (msgOk & success);
     }else{
@@ -131,8 +131,8 @@ int MitsuAc::putSettingsJson(const char* jsonSettings){
       msgOk = false;
       newSettings.wideVaneValid = false;
     }    
-    if (root.containsKey("temp") && root["temp"].is<int>()){
-      newSettings.tempDegC = root["temp"];
+    if (root.containsKey("stemp") && root["stemp"].is<int>()){
+      newSettings.tempDegC = root["stemp"];
       newSettings.tempDegCValid = true;
     }else{
       msgOk = false;
