@@ -1,10 +1,11 @@
 #include <ESP8266WiFi.h>
-#include <PubSubClient.h>
+#include <PubSubClient.h> //Warning!!! increase MQTT_MAX_PACKET_SIZE in PubSubClient.h from 128 to 256!
 #include <MitsuAc.h>
 
 WiFiClient wifi;
 PubSubClient mqttClient(wifi);
 MitsuAc ac(&Serial);
+
 
 static const char* mqttServer="192.168.1.120";
 static const char* mqttClientId ="bed3ac";
@@ -12,8 +13,8 @@ static const char* mqttStateTopic="home/bed3ac";
 static const char* mqttSetTopic="home/bed3ac/set";
 static const char* mqttUser="mqtt";
 static const char* mqttPass="mqtt";
-static const char* ssid = "xxx";
-static const char* password="xxx";
+static const char* ssid = "bdc02";
+static const char* password="rj68ggwc3";
 
  //DEBUG
 void debug(const char* msg){
@@ -48,9 +49,8 @@ void wifiConnect(){
 
 void mqttCallback(char* topic, byte* payload, unsigned int length){
     char str[length];
-    memcpy(str,payload,length);
-    str[length] = '\0';
-    ac.putSettingsJson(str,length);
+    strcpy(str,(char*) payload);
+    ac.putSettingsJson(str);
 };
 
 void setup() {
@@ -63,7 +63,7 @@ void setup() {
   ac.setDebugCb(&debug); //DEBUG
 }
 
-char lastSettings[512];
+char lastSettings[256];
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED){
@@ -76,9 +76,8 @@ void loop() {
 
   ac.monitor();
 
-  char newSettings[512];
-  size_t len=0;
-  ac.getSettingsJson(newSettings,len);
+  char newSettings[256] = {0};
+  ac.getSettingsJson(newSettings);
   
   if (strcmp(lastSettings,newSettings) != 0){
     mqttClient.publish(mqttStateTopic, newSettings, true);

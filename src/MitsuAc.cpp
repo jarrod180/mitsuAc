@@ -58,11 +58,12 @@ void MitsuAc::sendInit() {
   byte buf[16] = {0};
   int len = ml.getTxConnectPacket (buf);
   sendBytes(buf, len);
+  lastTxInitTime = millis();
 }
 
-void MitsuAc::getSettingsJson(char* settings, size_t len){
+void MitsuAc::getSettingsJson(char* settings){
    char buf[16];
-   strcpy(settings, "{\"power\":\""); 
+   strcpy(settings, "{\"pwr\":\""); 
    strcat(settings, ml.power_tToString(lastSettings.power));
    strcat(settings, "\",\"mode\":\"");
    strcat(settings, ml.mode_tToString(lastSettings.mode));
@@ -70,25 +71,24 @@ void MitsuAc::getSettingsJson(char* settings, size_t len){
    strcat(settings, ml.fan_tToString(lastSettings.fan));
    strcat(settings, "\",\"vane\":\"");
    strcat(settings, ml.vane_tToString(lastSettings.vane));
-   strcat(settings, "\",\"widevane\":\"");
+   strcat(settings, "\",\"wdvane\":\"");
    strcat(settings, ml.wideVane_tToString(lastSettings.wideVane));
-   strcat(settings, "\",\"temp\":");
-   itoa(lastSettings.tempDegC,&buf[0],10);
+   strcat(settings, "\",\"stemp\":");
+   itoa(lastSettings.tempDegC,buf,10);
    strcat(settings, buf);
-   strcat(settings, ",\"roomtemp\":");
-   itoa(lastRoomTemp.roomTemp,&buf[0],10);
+   strcat(settings, ",\"rtemp\":");
+   itoa(lastRoomTemp.roomTemp,buf,10);
    strcat(settings, buf);
-//   strcat(settings, ",\"tempsens1\":");
-//   dtostrf(lastRoomTemp.tempSens1Raw, 3, 1, &buf[0]);
-//   strcat(settings, buf);
-//   strcat(settings, ",\"tempsens2\":");
-//   dtostrf(lastRoomTemp.tempSens2Raw, 3, 1, &buf[0]);
-//   strcat(settings, buf);
+   strcat(settings, ",\"rtemp1\":");     
+   dtostrf(lastRoomTemp.tempSens1Raw, 4, 1, buf);  
+   strcat(settings, buf);
+   strcat(settings, ",\"rtemp2\":");
+   dtostrf(lastRoomTemp.tempSens2Raw, 4, 1, buf);   
+   strcat(settings, buf);
    strcat(settings, "}");
-   len = strlen(settings);
 }
 
-int MitsuAc::putSettingsJson(const char* jsonSettings, size_t len){
+int MitsuAc::putSettingsJson(const char* jsonSettings){
     StaticJsonBuffer<256> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(jsonSettings);
     MitsuProtocol::settings_t newSettings = ml.emptySettings;
@@ -143,17 +143,18 @@ int MitsuAc::putSettingsJson(const char* jsonSettings, size_t len){
       newSettings.tempDegCValid = false;
     }
 
-    byte buf[128];
-    int len2 = ml.getTxSettingsPacket(buf, newSettings);
-    sendBytes (buf,len2);
+    byte buf[32];
+    int len = ml.getTxSettingsPacket(buf, newSettings);
+    sendBytes (buf,len);
 
     return msgOk?0:-1;
 }
 
 void MitsuAc::monitor() {
   // If no infos are being received, trigger an init packet
-  if (millis() - lastSettingsTime > (INFO_REQ_INTERVAL * 2) && 
-      millis() - lastRoomTempTime > (INFO_REQ_INTERVAL * 2)) {
+  if (millis() - lastSettingsTime > (INFO_REQ_INTERVAL * 10) && 
+      millis() - lastRoomTempTime > (INFO_REQ_INTERVAL * 10) &&
+      millis() - lastTxInitTime > TX_MIN_WAIT_INTERVAL) {
      sendInit();
   }
 

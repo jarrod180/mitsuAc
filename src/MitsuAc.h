@@ -40,10 +40,10 @@ class MitsuAc
     void monitor();
     
     // Get current settings, json encoded
-    void getSettingsJson(char* settings, size_t len);
+    void getSettingsJson(char* settings);
     
     // Put immediately the requested settings
-    int putSettingsJson(const char* jsonSettings, size_t len);
+    int putSettingsJson(const char* jsonSettings);
 
     #ifdef DEBUG_ON
     void setDebugCb(DEBUG_CB);
@@ -55,7 +55,8 @@ class MitsuAc
     DEBUG_CB;
     #endif
 	
-	const int INFO_REQ_INTERVAL = 500; //ms 
+	 const int INFO_REQ_INTERVAL = 500; //ms 
+	 const int TX_MIN_WAIT_INTERVAL = 5000; //ms
     
     // Protocol objects
     MitsuProtocol ml = MitsuProtocol();
@@ -78,6 +79,8 @@ class MitsuAc
     unsigned long lastRoomTempTime = 0;
     MitsuProtocol::info_t lastInfo = MitsuProtocol::roomTemp;
     unsigned long lastInfoRequestTime = 0;
+    
+    unsigned long lastTxInitTime = 0;
 
     // Serial object and methods
     void sendBytes(byte* buf, int len);
