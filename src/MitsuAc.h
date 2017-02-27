@@ -51,15 +51,15 @@ class MitsuAc
     DEBUG_CB;
     #endif
 	
-	 const int INFO_REQ_INTERVAL = 500; //ms 
-	 const int TX_MIN_WAIT_INTERVAL = 5000; //ms
+    const int INFO_REQ_INTERVAL = 500; //ms 
+    const int TX_MIN_WAIT_INTERVAL = 5000; //ms
     
     // Protocol objects
     MitsuProtocol ml = MitsuProtocol();
     MitsuProtocol::packetBuilder pb = MitsuProtocol::packetBuilder(&ml);
     
     // Private Methods
-	 void sendInit();
+	void sendInit();
     void sendRequestInfo(MitsuProtocol::info_t kind);
     void storeRxSettings(MitsuProtocol::rxSettings_t settings);
     

@@ -42,13 +42,14 @@ public:
     void setDebugCb(DEBUG_CB);
     #endif
     
+	/* TYPES */
+	
     enum class power_t : uint8_t
     {
         powerOff = 0x00,
         powerOn  = 0x01
     };
-    const char* power_tToString (power_t power);
-    void power_tFromString (const char* powerStr, power_t* power, bool success);
+
     
     enum class mode_t : uint8_t
     {
@@ -58,9 +59,7 @@ public:
         modeFan  = 0x07,
         modeAuto = 0x08
     };
-    const char* mode_tToString (mode_t mode);
-    void mode_tFromString (const char* modeStr, mode_t* mode, bool success);
-    
+   
     enum class fan_t : uint8_t 
     {
         fanAuto  = 0x00,
@@ -70,9 +69,7 @@ public:
         fan3     = 0x05,
         fan4     = 0x06
     };
-    const char* fan_tToString (fan_t fan);
-    void fan_tFromString (const char* fanStr, fan_t* fan, bool success);
-    
+   
     enum class vane_t : uint8_t
     {
         vaneAuto  = 0x00,
@@ -83,9 +80,7 @@ public:
         vane5     = 0x05,
         vaneSwing = 0x07
     };
-    const char* vane_tToString (vane_t vane); 
-    void vane_tFromString (const char* vaneStr, vane_t* vane, bool success); 
-    
+  
     enum class wideVane_t : uint8_t 
     {
         wideVaneFullLeft     = 0x01,
@@ -96,9 +91,7 @@ public:
         wideVaneLeftAndRight = 0x08,
         wideVaneSwing        = 0x0c
     };
-    const char* wideVane_tToString (wideVane_t wideVane);
-    void wideVane_tFromString (const char* wideVaneStr, wideVane_t* wideVane, bool success);
-    
+  
 
     // Main settings type
     struct settings_t {
@@ -194,10 +187,28 @@ public:
         } data;
     };
     
+	/* CLASSES / METHODS */
         
     // Constructor
     MitsuProtocol();
-    
+	
+	// String conversions
+	const char* power_tToString (power_t power);
+    void power_tFromString (const char* powerStr, power_t* power, bool success);
+    const char* mode_tToString (mode_t mode);
+    void mode_tFromString (const char* modeStr, mode_t* mode, bool success);
+    const char* fan_tToString (fan_t fan);
+    void fan_tFromString (const char* fanStr, fan_t* fan, bool success);
+    const char* vane_tToString (vane_t vane); 
+    void vane_tFromString (const char* vaneStr, vane_t* vane, bool success); 
+    const char* wideVane_tToString (wideVane_t wideVane);
+    void wideVane_tFromString (const char* wideVaneStr, wideVane_t* wideVane, bool success);
+  
+    // Tx Packet Get Methods
+    int getTxSettingsPacket (uint8_t* buffer, settings_t settings);
+    int getTxConnectPacket (uint8_t* buffer);
+    int getTxInfoPacket (uint8_t* buffer, info_t kind);
+	
     /* 
     packetBuilder Class -
     Add one uint8_t at a time and discover when a valid
@@ -220,13 +231,9 @@ public:
             static const int MAX_SIZE=32;
             uint8_t buffer[MAX_SIZE];
             int cursor;
-    };    
-    
-    // Return different kinds of tx packet
-    int getTxSettingsPacket (uint8_t* buffer, settings_t settings);
-    int getTxConnectPacket (uint8_t* buffer);
-    int getTxInfoPacket (uint8_t* buffer, info_t kind);
-
+    };
+	
+	
 private:
     #ifdef DEBUG_ON
     DEBUG_CB;
@@ -250,11 +257,9 @@ private:
     static inline int byteToTemp(uint8_t b) {
         return (b >= 0x00 && b <= 0x0f)?int(31 - b):0;
     }
-
     static inline double byteToTempRaw(uint8_t b){
         return ((static_cast<double>(b) - static_cast<double>(128))/static_cast<double>(2));
     }
-    
     
     // Calculate the checksum for given uint8_ts.
     static uint8_t calculateChecksum(uint8_t* data, int len);
