@@ -51,19 +51,20 @@ class MitsuAc
     void log (const char* msg);
     DEBUG_CB;
     #endif
-	 
+
 	 // Constants
 	 const int MIN_INFO_REQ_WAIT_TIME   = 400;  //ms 
 	 const int MIN_CONNECTION_WAIT_TIME = 5000; //ms
 	 const int MIN_SETTINGS_WAIT_TIME   = 400;  //ms 
 	 const int MIN_TX_DELAY_WAIT_TIME   = 100;   //ms - must be less than the above
+
     
     // Protocol objects
     MitsuProtocol ml = MitsuProtocol();
     MitsuProtocol::packetBuilder pb = MitsuProtocol::packetBuilder(&ml);
     
     // Private Methods
-	 void sendInit();
+	void sendInit();
     void sendRequestInfo(MitsuProtocol::info_t kind);
     void storeRxSettings(MitsuProtocol::rxSettings_t settings);
     
