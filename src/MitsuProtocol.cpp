@@ -258,7 +258,7 @@ MitsuProtocol::packetBuilder::packetBuilder(MitsuProtocol* parent) {
     }
 }
 
-int MitsuProtocol::packetBuilder::adduint8_t(uint8_t b){
+int MitsuProtocol::packetBuilder::addByte(uint8_t b){
     #ifdef DEBUG_BYTES
     char dmsg[16];
     strcpy (dmsg,"Rx: 0x");
@@ -270,7 +270,7 @@ int MitsuProtocol::packetBuilder::adduint8_t(uint8_t b){
     // Too many uint8_ts, reset
     if (cursor >= MAX_SIZE){
         #ifdef DEBUG_BYTES
-        parent->log("MitsuProtocol::packetBuilder.adduint8_t: cursor reset");        
+        parent->log("MitsuProtocol::packetBuilder.addByte: cursor reset");        
         #endif
         reset();
     }
@@ -278,7 +278,7 @@ int MitsuProtocol::packetBuilder::adduint8_t(uint8_t b){
     if ((cursor == 0 && b == HEADER_1) || cursor > 0){
         #ifdef DEBUG_BYTES
         if (cursor==0){
-            parent->log("MitsuProtocol::packetBuilder.adduint8_t: packet start");
+            parent->log("MitsuProtocol::packetBuilder.addByte: packet start");
         }
         #endif
         
@@ -358,11 +358,17 @@ MitsuProtocol::msg_t MitsuProtocol::packetBuilder::getData(){
             switch (msg.data.rxCurrentSettingsData.kind){
                 case settings:
                     msg.data.rxCurrentSettingsData.data.settings.power = static_cast<power_t>(buffer[DATA_POWER_POS]);
+                    msg.data.rxCurrentSettingsData.data.settings.powerValid = true;
                     msg.data.rxCurrentSettingsData.data.settings.mode = static_cast<mode_t>(buffer[DATA_MODE_POS]);
+                    msg.data.rxCurrentSettingsData.data.settings.modeValid = true;
                     msg.data.rxCurrentSettingsData.data.settings.tempDegC = byteToTemp(buffer[DATA_TEMP_POS]);    
+                    msg.data.rxCurrentSettingsData.data.settings.tempDegCValid = true;
                     msg.data.rxCurrentSettingsData.data.settings.fan = static_cast<fan_t>(buffer[DATA_FAN_POS]);
+                    msg.data.rxCurrentSettingsData.data.settings.fanValid = true;
                     msg.data.rxCurrentSettingsData.data.settings.vane = static_cast<vane_t>(buffer[DATA_VANE_POS]);
+                    msg.data.rxCurrentSettingsData.data.settings.vaneValid = true;
                     msg.data.rxCurrentSettingsData.data.settings.wideVane = static_cast<wideVane_t>(buffer[DATA_WIDEVANE_POS]);
+                    msg.data.rxCurrentSettingsData.data.settings.wideVaneValid = true;
                     break;
                 case roomTemp:
                     msg.data.rxCurrentSettingsData.data.roomTemp.roomTemp = byteToRoomTemp(buffer[DATA_ROOM_TEMP_POS]);

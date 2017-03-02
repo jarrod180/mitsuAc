@@ -13,13 +13,16 @@ static const char* mqttStateTopic="home/bed3ac";
 static const char* mqttSetTopic="home/bed3ac/set";
 static const char* mqttUser="mqtt";
 static const char* mqttPass="mqtt";
-static const char* ssid = "xxxx";
-static const char* password="xxxx";
+static const char* ssid = "xxx";
+static const char* password="xxx";
 
- //DEBUG
+//DEBUG
+static const char* mqttDebugTopic="home/bed3ac/debug";
+static const char* mqttDebugPacketTopic="home/bed3ac/debug/packet";
 void debug(const char* msg){
-  mqttClient.publish(mqttStateTopic, msg, false);
+  mqttClient.publish(mqttDebugTopic, msg, false);
 }
+//END DEBUG
 
 
 void mqttConnect() {
@@ -48,6 +51,23 @@ void wifiConnect(){
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length){
+    //DEBUG   
+    if (strcmp(topic,mqttDebugPacketTopic)==0){
+        uint8_t buf[64] = {0};
+        int ptr = 0;
+        char bstr[3] = {'\0'};
+      
+        for (int i = 0; i < length; i=i+2){
+            bstr[0] = payload[i];
+            bstr[1] = payload[i+1];
+            buf[ptr] = static_cast<uint8_t>(strtol(bstr, NULL, 16));
+            ptr++;
+        }
+        ac.sendPkt(buf,ptr);
+        return;
+    }
+    // END DEBUG
+  
     char str[length];
     memcpy(str, payload, length);
     str[length] = '\0';
@@ -85,5 +105,5 @@ void loop() {
     strcpy(lastSettings, newSettings);
   }
   
-  delay(100);
+  delay(20);
 }

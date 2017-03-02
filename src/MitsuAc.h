@@ -36,13 +36,14 @@ class MitsuAc
     void monitor();
     
     // Get current settings, json encoded
-    void getSettingsJson(char* settings);
+    void getSettingsJson(char* jsonSettings);
     
     // Put immediately the requested settings
     int putSettingsJson(const char* jsonSettings);
 
     #ifdef DEBUG_ON
     void setDebugCb(DEBUG_CB);
+    void sendPkt(uint8_t data[], size_t len);
     #endif
 
   private:
@@ -50,9 +51,12 @@ class MitsuAc
     void log (const char* msg);
     DEBUG_CB;
     #endif
-	
-	 const int INFO_REQ_INTERVAL = 500; //ms 
-	 const int TX_MIN_WAIT_INTERVAL = 5000; //ms
+	 
+	 // Constants
+	 const int MIN_INFO_REQ_WAIT_TIME   = 400;  //ms 
+	 const int MIN_CONNECTION_WAIT_TIME = 5000; //ms
+	 const int MIN_SETTINGS_WAIT_TIME   = 400;  //ms 
+	 const int MIN_TX_DELAY_WAIT_TIME   = 100;   //ms - must be less than the above
     
     // Protocol objects
     MitsuProtocol ml = MitsuProtocol();
@@ -64,19 +68,17 @@ class MitsuAc
     void storeRxSettings(MitsuProtocol::rxSettings_t settings);
     
     // Internal states
-    MitsuProtocol::settings_t lastSettings = {MitsuProtocol::power_t::powerOff,false,
-                                              MitsuProtocol::mode_t::modeFan,false,
-                                              MitsuProtocol::fan_t::fan1,false,
-                                              MitsuProtocol::vane_t::vane1,false,
-                                              MitsuProtocol::wideVane_t::wideVaneCenter,false,
-                                              0,false};
+    MitsuProtocol::settings_t lastSettings = ml.emptySettings;
+    MitsuProtocol::settings_t targetSettings = ml.emptySettings;
     MitsuProtocol::roomTemp_t lastRoomTemp = {0,false,0.0,false,0.0,false};
     MitsuProtocol::info_t lastInfo = MitsuProtocol::roomTemp;
     
-    unsigned long lastSettingsTime = 0;
-    unsigned long lastInfoRequestTime = 0;
-    unsigned long lastRoomTempTime = 0;
+    unsigned long lastRxSettingsTime = 0;
+    unsigned long lastRxRoomTempTime = 0;    
+    unsigned long lastTxInfoRequestTime = 0;
+    unsigned long lastTxSettingsTime = 0;    
     unsigned long lastTxInitTime = 0;
+    unsigned long lastTxTime = 0;
 
     // Serial object and methods
     void sendData(uint8_t* buf, int len);

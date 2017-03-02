@@ -114,6 +114,30 @@ public:
        bool wideVaneValid;
        int tempDegC;
        bool tempDegCValid;
+        
+       bool operator==(const settings_t& other)
+       {
+           bool result = true;
+           result &= powerValid && other.powerValid ? (power == other.power) : true;
+           result &= modeValid && other.modeValid ? (mode == other.mode) : true;
+           result &= fanValid && other.fanValid ? (fan == other.fan) : true;
+           result &= vaneValid && other.vaneValid ? (vane == other.vane) : true;
+           result &= wideVaneValid && other.wideVaneValid ? (wideVane == other.wideVane) : true;
+           result &= tempDegCValid && other.tempDegCValid ? (tempDegC == other.tempDegC) : true;
+           return result;
+       }     
+        
+       bool operator!=(const settings_t& other)
+       {
+           bool result = true;
+           result &= powerValid && other.powerValid ? (power == other.power) : true;
+           result &= modeValid && other.modeValid ? (mode == other.mode) : true;
+           result &= fanValid && other.fanValid ? (fan == other.fan) : true;
+           result &= vaneValid && other.vaneValid ? (vane == other.vane) : true;
+           result &= wideVaneValid && other.wideVaneValid ? (wideVane == other.wideVane) : true;
+           result &= tempDegCValid && other.tempDegCValid ? (tempDegC == other.tempDegC) : true;
+           return !result;
+       }   
     };
 
     const settings_t emptySettings = {MitsuProtocol::power_t::powerOff,false,
@@ -122,6 +146,7 @@ public:
                                               MitsuProtocol::vane_t::vane1,false,
                                               MitsuProtocol::wideVane_t::wideVaneCenter,false,
                                               0,false}; 
+                                              
 
     struct roomTemp_t {
        int roomTemp;
@@ -150,7 +175,7 @@ public:
         {
           settings_t settings;
           roomTemp_t roomTemp;
-        } data;
+        } data;       
     };    
     
     struct status_t 
@@ -191,7 +216,7 @@ public:
           connect_t txConnectData;
           status_t rxStatusOkData;
           status_t rxStatusNokData;
-        } data;
+        } data;           
     };
     
         
@@ -209,7 +234,7 @@ public:
         
         public:
             packetBuilder(MitsuProtocol* parent);
-            int adduint8_t(uint8_t b);
+            int addByte(uint8_t b);
             bool complete();
             bool valid();
             MitsuProtocol::msg_t getData();

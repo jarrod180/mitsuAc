@@ -31,6 +31,21 @@ void MitsuAc::setDebugCb(DEBUG_CB){
     this->debugCb = debugCb;
     ml.setDebugCb(debugCb);
 }
+void MitsuAc::sendPkt(uint8_t* data, size_t len){
+    uint8_t buf[64] =  {0};
+    memcpy(buf,data,len);
+    
+    // Put a checksum on the end
+    uint8_t sum = 0;
+    for (int i = 0; i < len; i++) {
+        sum += data[i];
+    }
+    buf[len] = (0xfc - sum) & 0xff;    
+
+    sendData (buf,len+1);
+    
+    
+}
 #endif
 /* END DEBUG */
 
@@ -48,6 +63,7 @@ void MitsuAc::sendRequestInfo(MitsuProtocol::info_t kind){
     uint8_t buf[32] = {0};
     int len = ml.getTxInfoPacket (buf, kind);
     sendData (buf, len);
+    lastTxInfoRequestTime = millis();
 }
 
 void MitsuAc::sendInit() {
@@ -57,106 +73,100 @@ void MitsuAc::sendInit() {
   lastTxInitTime = millis();
 }
 
-void MitsuAc::getSettingsJson(char* settings){
+void MitsuAc::getSettingsJson(char* jsonSettings){
    char buf[16];
-   strcpy(settings, "{\"pwr\":\""); 
-   strcat(settings, ml.power_tToString(lastSettings.power));
-   strcat(settings, "\",\"mode\":\"");
-   strcat(settings, ml.mode_tToString(lastSettings.mode));
-   strcat(settings, "\",\"fan\":\"");
-   strcat(settings, ml.fan_tToString(lastSettings.fan));
-   strcat(settings, "\",\"vane\":\"");
-   strcat(settings, ml.vane_tToString(lastSettings.vane));
-   strcat(settings, "\",\"wdvane\":\"");
-   strcat(settings, ml.wideVane_tToString(lastSettings.wideVane));
-   strcat(settings, "\",\"stemp\":");
+   strcpy(jsonSettings, "{\"pwr\":\""); 
+   strcat(jsonSettings, ml.power_tToString(lastSettings.power));
+   strcat(jsonSettings, "\",\"mode\":\"");
+   strcat(jsonSettings, ml.mode_tToString(lastSettings.mode));
+   strcat(jsonSettings, "\",\"fan\":\"");
+   strcat(jsonSettings, ml.fan_tToString(lastSettings.fan));
+   strcat(jsonSettings, "\",\"vane\":\"");
+   strcat(jsonSettings, ml.vane_tToString(lastSettings.vane));
+   strcat(jsonSettings, "\",\"wdvane\":\"");
+   strcat(jsonSettings, ml.wideVane_tToString(lastSettings.wideVane));
+   strcat(jsonSettings, "\",\"stemp\":");
    itoa(lastSettings.tempDegC,buf,10);
-   strcat(settings, buf);
-   strcat(settings, ",\"rtemp\":");
+   strcat(jsonSettings, buf);
+   strcat(jsonSettings, ",\"rtemp\":");
    itoa(lastRoomTemp.roomTemp,buf,10);
-   strcat(settings, buf);
-   strcat(settings, ",\"rtemp1\":");     
+   strcat(jsonSettings, buf);
+   strcat(jsonSettings, ",\"rtemp1\":");     
    dtostrf(lastRoomTemp.tempSens1Raw, 4, 1, buf);  
-   strcat(settings, buf);
-   strcat(settings, ",\"rtemp2\":");
+   strcat(jsonSettings, buf);
+   strcat(jsonSettings, ",\"rtemp2\":");
    dtostrf(lastRoomTemp.tempSens2Raw, 4, 1, buf);   
-   strcat(settings, buf);
-   strcat(settings, "}");
+   strcat(jsonSettings, buf);
+   strcat(jsonSettings, "}");
 }
 
 int MitsuAc::putSettingsJson(const char* jsonSettings){
     StaticJsonBuffer<256> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(jsonSettings);
-    MitsuProtocol::settings_t newSettings = ml.emptySettings;
+    //MitsuProtocol::settings_t targetSettings = ml.emptySettings;
     bool success=false;
     bool msgOk = true;
     
     if (root.containsKey("pwr") && root["pwr"].is<const char*>()){
-      ml.power_tFromString(root["pwr"],&newSettings.power,success);
-      newSettings.powerValid = true;
+      ml.power_tFromString(root["pwr"],&targetSettings.power,success);
+      targetSettings.powerValid = true;
       msgOk = (msgOk & success);
     }else{
-      newSettings.powerValid = false;
+      targetSettings.powerValid = false;
       msgOk = false;
     }
     if (root.containsKey("mode") && root["mode"].is<const char*>()){
-      ml.mode_tFromString(root["mode"],&newSettings.mode,success);
+      ml.mode_tFromString(root["mode"],&targetSettings.mode,success);
       msgOk = (msgOk & success);
-      newSettings.modeValid = true;
+      targetSettings.modeValid = true;
     }else{
       msgOk = false;
-      newSettings.modeValid = false;
+      targetSettings.modeValid = false;
     }
     if (root.containsKey("fan")){
-      ml.fan_tFromString(root["fan"],&newSettings.fan,success);
+      ml.fan_tFromString(root["fan"],&targetSettings.fan,success);
       msgOk = (msgOk & success);
-      newSettings.fanValid = true;
+      targetSettings.fanValid = true;
     }else{
       msgOk = false;
-      newSettings.fanValid = false;
+      targetSettings.fanValid = false;
     }    
     if (root.containsKey("vane") && root["vane"].is<const char*>()){
-      ml.vane_tFromString(root["vane"],&newSettings.vane,success);
+      ml.vane_tFromString(root["vane"],&targetSettings.vane,success);
       msgOk = (msgOk & success);
-      newSettings.vaneValid = true;
+      targetSettings.vaneValid = true;
     }else{
       msgOk = false;
-      newSettings.vaneValid = false;
+      targetSettings.vaneValid = false;
     }    
     if (root.containsKey("widevane") && root["widevane"].is<const char*>()){
-      ml.wideVane_tFromString(root["widevane"],&newSettings.wideVane,success);
+      ml.wideVane_tFromString(root["widevane"],&targetSettings.wideVane,success);
       msgOk = (msgOk & success);
-      newSettings.wideVaneValid = true;
+      targetSettings.wideVaneValid = true;
     }else{
       msgOk = false;
-      newSettings.wideVaneValid = false;
+      targetSettings.wideVaneValid = false;
     }    
     if (root.containsKey("stemp") && root["stemp"].is<int>()){
-      newSettings.tempDegC = root["stemp"];
-      newSettings.tempDegCValid = true;
+      targetSettings.tempDegC = root["stemp"];
+      targetSettings.tempDegCValid = true;
     }else{
       msgOk = false;
-      newSettings.tempDegCValid = false;
+      targetSettings.tempDegCValid = false;
     }
 
     uint8_t buf[32];
-    int len = ml.getTxSettingsPacket(buf, newSettings);
+    int len = ml.getTxSettingsPacket(buf, targetSettings);
     sendData (buf,len);
+    lastTxSettingsTime = millis();
 
     return msgOk?0:-1;
 }
 
 void MitsuAc::monitor() {
-  // If no infos are being received, trigger an init packet
-  if (millis() - lastSettingsTime > (INFO_REQ_INTERVAL * 10) && 
-      millis() - lastRoomTempTime > (INFO_REQ_INTERVAL * 10) &&
-      millis() - lastTxInitTime > TX_MIN_WAIT_INTERVAL) {
-     sendInit();
-  }
-
   // Service the serial port
   while (_HardSerial->available() > 0){
-    pb.adduint8_t(_HardSerial->read());
+    pb.addByte(_HardSerial->read());
     if (pb.complete() && pb.valid()) {
         MitsuProtocol::msg_t msg = pb.getData();
         if (msg.msgKindValid){
@@ -169,12 +179,36 @@ void MitsuAc::monitor() {
         pb.reset();
     }
   }
-  // Request an Info if required
-  if (millis() > lastInfoRequestTime + INFO_REQ_INTERVAL){
-     MitsuProtocol::info_t thisInfo = lastInfo==MitsuProtocol::settings ? MitsuProtocol::roomTemp : MitsuProtocol::settings;
-     sendRequestInfo(thisInfo);
-     lastInfoRequestTime = millis();
-     lastInfo = thisInfo;
+  
+  if (millis() > (lastTxTime + MIN_TX_DELAY_WAIT_TIME)){
+      
+      if (millis() > (lastTxInfoRequestTime + MIN_INFO_REQ_WAIT_TIME)){
+          MitsuProtocol::info_t thisInfo = lastInfo==MitsuProtocol::settings ? MitsuProtocol::roomTemp : MitsuProtocol::settings;
+          sendRequestInfo(thisInfo);
+          lastInfo = thisInfo;
+          return;
+      }
+      
+      // If no infos are being received, trigger an init packet
+      if (millis() - lastRxSettingsTime > (MIN_INFO_REQ_WAIT_TIME * 10) && 
+          millis() - lastRxRoomTempTime > (MIN_INFO_REQ_WAIT_TIME * 10) &&
+          millis() - lastTxInitTime > MIN_CONNECTION_WAIT_TIME) {
+         sendInit();
+         return;
+      }
+      
+      
+      // Check the target settings against the latest settings
+      if ((targetSettings != ml.emptySettings) &&
+          (targetSettings != lastSettings) && 
+          (millis() > (lastTxSettingsTime + MIN_SETTINGS_WAIT_TIME)) ){
+          uint8_t buf[32];
+          int len = ml.getTxSettingsPacket(buf, targetSettings);
+          sendData (buf,len);
+          lastTxSettingsTime = millis();
+          return;
+      } 
+                   
   }
 }
 
@@ -209,17 +243,18 @@ void MitsuAc::sendData(uint8_t* buf, int len){
           _HardSerial->write((uint8_t)buf[i]);
         }
     }
+    lastTxTime = millis();
 }
 
 void MitsuAc::storeRxSettings(MitsuProtocol::rxSettings_t settings){
     switch (settings.kind){
         case MitsuProtocol::info_t::settings:
             lastSettings = settings.data.settings;
-			lastSettingsTime = millis();
+			   lastRxSettingsTime = millis();
             break;
         case MitsuProtocol::info_t::roomTemp :
             lastRoomTemp = settings.data.roomTemp;
-			lastRoomTempTime = millis();
+			   lastRxRoomTempTime = millis();
             break;
     }
 }
