@@ -106,39 +106,26 @@ public:
        wideVane_t wideVane;
        bool wideVaneValid;
        int tempDegC;
-       bool tempDegCValid;
-        
-       bool operator==(const settings_t& other)
-       {
-           bool result = true;
-           result &= powerValid && other.powerValid ? (power == other.power) : true;
-           result &= modeValid && other.modeValid ? (mode == other.mode) : true;
-           result &= fanValid && other.fanValid ? (fan == other.fan) : true;
-           result &= vaneValid && other.vaneValid ? (vane == other.vane) : true;
-           result &= wideVaneValid && other.wideVaneValid ? (wideVane == other.wideVane) : true;
-           result &= tempDegCValid && other.tempDegCValid ? (tempDegC == other.tempDegC) : true;
-           return result;
-       }     
-        
-       bool operator!=(const settings_t& other)
-       {
-           bool result = true;
-           result &= powerValid && other.powerValid ? (power == other.power) : true;
-           result &= modeValid && other.modeValid ? (mode == other.mode) : true;
-           result &= fanValid && other.fanValid ? (fan == other.fan) : true;
-           result &= vaneValid && other.vaneValid ? (vane == other.vane) : true;
-           result &= wideVaneValid && other.wideVaneValid ? (wideVane == other.wideVane) : true;
-           result &= tempDegCValid && other.tempDegCValid ? (tempDegC == other.tempDegC) : true;
-           return !result;
-       }   
+       bool tempDegCValid;  
     };
-
+    
+    bool equals(settings_t left, settings_t right){
+        bool result = true;
+        result &= ((left.powerValid && right.powerValid) ? (left.power == right.power) : true);
+        result &= ((left.modeValid && right.modeValid) ? (left.mode == right.mode) : true);
+        result &= ((left.fanValid && right.fanValid) ? (left.fan == right.fan) : true);
+        result &= ((left.vaneValid && right.vaneValid) ? (left.vane == right.vane) : true);
+        result &= ((left.wideVaneValid && right.wideVaneValid) ? (left.wideVane == right.wideVane) : true);
+        result &= ((left.tempDegCValid && right.tempDegCValid) ? (left.tempDegC == right.tempDegC) : true);
+        return result;
+    }
+       
     const settings_t emptySettings = {MitsuProtocol::power_t::powerOff,false,
-                                              MitsuProtocol::mode_t::modeFan,false,
-                                              MitsuProtocol::fan_t::fan1,false,
-                                              MitsuProtocol::vane_t::vane1,false,
-                                              MitsuProtocol::wideVane_t::wideVaneCenter,false,
-                                              0,false}; 
+                                      MitsuProtocol::mode_t::modeFan,false,
+                                      MitsuProtocol::fan_t::fan1,false,
+                                      MitsuProtocol::vane_t::vane1,false,
+                                      MitsuProtocol::wideVane_t::wideVaneCenter,false,
+                                      0,false}; 
                                               
 
     struct roomTemp_t {
@@ -212,13 +199,13 @@ public:
         } data;           
     };
     
-	/* CLASSES / METHODS */
+	 /* CLASSES / METHODS */
         
     // Constructor
     MitsuProtocol();
 	
-	// String conversions
-	const char* power_tToString (power_t power);
+	 // String conversions
+	 const char* power_tToString (power_t power);
     void power_tFromString (const char* powerStr, power_t* power, bool success);
     const char* mode_tToString (mode_t mode);
     void mode_tFromString (const char* modeStr, mode_t* mode, bool success);
@@ -236,7 +223,7 @@ public:
 	
     /* 
     packetBuilder Class -
-    Add one uint8_t at a time and discover when a valid
+    Add one byte at a time and discover when a valid
     packet is detected and then get the data.
     */
     class packetBuilder

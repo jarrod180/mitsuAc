@@ -53,22 +53,24 @@ class MitsuAc
     #endif
 
 	 // Constants
-	 const int MIN_INFO_REQ_WAIT_TIME   = 400;  //ms 
+	 const int MIN_INFO_REQ_WAIT_TIME   = 500;  //ms 
 	 const int MIN_CONNECTION_WAIT_TIME = 5000; //ms
-	 const int MIN_SETTINGS_WAIT_TIME   = 400;  //ms 
-	 const int MIN_TX_DELAY_WAIT_TIME   = 100;   //ms - must be less than the above
-
+	 const int MIN_SETTINGS_WAIT_TIME   = 500;  //ms 
+	 const int MIN_TX_DELAY_WAIT_TIME   = 200;  //ms - must be less than the above
     
     // Protocol objects
     MitsuProtocol ml = MitsuProtocol();
     MitsuProtocol::packetBuilder pb = MitsuProtocol::packetBuilder(&ml);
     
     // Private Methods
-	void sendInit();
+	 void sendInit();
     void sendRequestInfo(MitsuProtocol::info_t kind);
     void storeRxSettings(MitsuProtocol::rxSettings_t settings);
     
     // Internal states
+    typedef enum states_t {INFO_REQ, SETTINGS};
+    states_t currentState = INFO_REQ;
+    
     MitsuProtocol::settings_t lastSettings = ml.emptySettings;
     MitsuProtocol::settings_t targetSettings = ml.emptySettings;
     MitsuProtocol::roomTemp_t lastRoomTemp = {0,false,0.0,false,0.0,false};
@@ -81,6 +83,9 @@ class MitsuAc
     unsigned long lastTxInitTime = 0;
     unsigned long lastTxTime = 0;
 
+    bool firstRxSettingsReceived = false;
+    bool targetSettingsAchieved = false;
+    
     // Serial object and methods
     void sendData(uint8_t* buf, int len);
     HardwareSerial * _HardSerial;

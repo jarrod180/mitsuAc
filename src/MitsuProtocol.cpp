@@ -267,7 +267,7 @@ int MitsuProtocol::packetBuilder::addByte(uint8_t b){
     parent->log(dmsg);    
     #endif
       
-    // Too many uint8_ts, reset
+    // Too many bytes, reset
     if (cursor >= MAX_SIZE){
         #ifdef DEBUG_BYTES
         parent->log("MitsuProtocol::packetBuilder.addByte: cursor reset");        
@@ -284,7 +284,7 @@ int MitsuProtocol::packetBuilder::addByte(uint8_t b){
         
         buffer[cursor] = b;
         cursor++;
-        return 0; // OK, uint8_t accepted
+        return 0; // OK, bytes accepted
     }else{
         return 1; // OK, but ignored - waiting for packet start
     }

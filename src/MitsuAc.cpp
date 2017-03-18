@@ -56,6 +56,7 @@ MitsuAc::MitsuAc(HardwareSerial *serial) {
 void MitsuAc::initialize(){
   _HardSerial->begin(2400, SERIAL_8E1);
   delay(1000);
+  firstRxSettingsReceived = false;
   sendInit();
 }
 
@@ -139,8 +140,8 @@ int MitsuAc::putSettingsJson(const char* jsonSettings){
       msgOk = false;
       targetSettings.vaneValid = false;
     }    
-    if (root.containsKey("widevane") && root["widevane"].is<const char*>()){
-      ml.wideVane_tFromString(root["widevane"],&targetSettings.wideVane,success);
+    if (root.containsKey("wdvane") && root["wdvane"].is<const char*>()){
+      ml.wideVane_tFromString(root["wdvane"],&targetSettings.wideVane,success);
       msgOk = (msgOk & success);
       targetSettings.wideVaneValid = true;
     }else{
@@ -154,6 +155,8 @@ int MitsuAc::putSettingsJson(const char* jsonSettings){
       msgOk = false;
       targetSettings.tempDegCValid = false;
     }
+    
+    targetSettingsAchieved = false;
 
     uint8_t buf[32];
     int len = ml.getTxSettingsPacket(buf, targetSettings);
@@ -180,36 +183,42 @@ void MitsuAc::monitor() {
     }
   }
   
-  if (millis() > (lastTxTime + MIN_TX_DELAY_WAIT_TIME)){
+  switch (currentState){
+
+      case (INFO_REQ):
+         // If no infos are being received, trigger an init packet
+         if (((millis() - lastRxSettingsTime) > (MIN_INFO_REQ_WAIT_TIME * 10)) && 
+             ((millis() - lastRxRoomTempTime) > (MIN_INFO_REQ_WAIT_TIME * 10)) &&
+             ((millis() - lastTxInitTime) > MIN_CONNECTION_WAIT_TIME) &&
+             ((millis() - lastTxTime) > MIN_TX_DELAY_WAIT_TIME)) {
+            firstRxSettingsReceived = false;
+            sendInit();
+         }
+         else if (((millis() - lastTxInfoRequestTime) > MIN_INFO_REQ_WAIT_TIME) &&
+                  ((millis() - lastTxTime) > MIN_TX_DELAY_WAIT_TIME)){
+             MitsuProtocol::info_t thisInfo = lastInfo==MitsuProtocol::settings ? MitsuProtocol::roomTemp : MitsuProtocol::settings;
+             sendRequestInfo(thisInfo);
+             lastInfo = thisInfo;
+         }   
+         currentState = SETTINGS;
+         break;
       
-      if (millis() > (lastTxInfoRequestTime + MIN_INFO_REQ_WAIT_TIME)){
-          MitsuProtocol::info_t thisInfo = lastInfo==MitsuProtocol::settings ? MitsuProtocol::roomTemp : MitsuProtocol::settings;
-          sendRequestInfo(thisInfo);
-          lastInfo = thisInfo;
-          return;
-      }
+      case (SETTINGS):
       
-      // If no infos are being received, trigger an init packet
-      if (millis() - lastRxSettingsTime > (MIN_INFO_REQ_WAIT_TIME * 10) && 
-          millis() - lastRxRoomTempTime > (MIN_INFO_REQ_WAIT_TIME * 10) &&
-          millis() - lastTxInitTime > MIN_CONNECTION_WAIT_TIME) {
-         sendInit();
-         return;
-      }
-      
-      
-      // Check the target settings against the latest settings
-      if ((targetSettings != ml.emptySettings) &&
-          (targetSettings != lastSettings) && 
-          (millis() > (lastTxSettingsTime + MIN_SETTINGS_WAIT_TIME)) ){
-          uint8_t buf[32];
-          int len = ml.getTxSettingsPacket(buf, targetSettings);
-          sendData (buf,len);
-          lastTxSettingsTime = millis();
-          return;
-      } 
-                   
-  }
+         // Check the target settings against the latest settings
+         if (firstRxSettingsReceived &&
+             !targetSettingsAchieved &&
+             (!ml.equals(targetSettings, lastSettings)) && 
+             ((millis() - lastTxSettingsTime) > MIN_SETTINGS_WAIT_TIME) &&
+             ((millis() - lastTxTime) > MIN_TX_DELAY_WAIT_TIME)){
+             uint8_t buf[32];
+             int len = ml.getTxSettingsPacket(buf, targetSettings);
+             sendData (buf,len);
+             lastTxSettingsTime = millis();
+         }
+         currentState = INFO_REQ;
+         break;
+    }
 }
 
 // Private Methods
@@ -250,7 +259,18 @@ void MitsuAc::storeRxSettings(MitsuProtocol::rxSettings_t settings){
     switch (settings.kind){
         case MitsuProtocol::info_t::settings:
             lastSettings = settings.data.settings;
-			   lastRxSettingsTime = millis();
+            lastRxSettingsTime = millis();
+            
+            if(!firstRxSettingsReceived){
+                firstRxSettingsReceived = true;
+                targetSettings = settings.data.settings;
+            }
+            
+            if (ml.equals(targetSettings, lastSettings)){
+                // Target settings achieved, stop monitoring it
+                targetSettingsAchieved = true;
+            }
+			   
             break;
         case MitsuProtocol::info_t::roomTemp :
             lastRoomTemp = settings.data.roomTemp;

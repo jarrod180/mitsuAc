@@ -6,7 +6,6 @@ WiFiClient wifi;
 PubSubClient mqttClient(wifi);
 MitsuAc ac(&Serial);
 
-
 static const char* mqttServer="192.168.1.120";
 static const char* mqttClientId ="bed3ac";
 static const char* mqttStateTopic="home/bed3ac";
@@ -51,6 +50,7 @@ void wifiConnect(){
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length){
+/*
     //DEBUG   
     if (strcmp(topic,mqttDebugPacketTopic)==0){
         uint8_t buf[64] = {0};
@@ -67,7 +67,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length){
         return;
     }
     // END DEBUG
-  
+*/ 
     char str[length];
     memcpy(str, payload, length);
     str[length] = '\0';
